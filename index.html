@@ -640,7 +640,7 @@
         </div>
         <div class="metric">
           <div class="metric-label">Projects</div>
-          <div class="metric-value" data-count="6">0</div>
+          <div class="metric-value" data-count="8">0</div>
         </div>
         <div class="metric">
           <div class="metric-label">Focus</div>
@@ -762,7 +762,7 @@
     <div class="section-head reveal">
       <div class="section-kicker">03 — Build Log</div>
       <h2 class="section-title">Projects & Experiments</h2>
-      <p class="section-desc">From web builds to robot prototypes — everything I'm shipping, building, or planning next.</p>
+      <p class="section-desc">Live GitHub repos and Vercel / Pages deployments — hackathons, campus tools, internships, and this site.</p>
     </div>
 
     <div class="project-toolbar reveal">
@@ -770,118 +770,157 @@
         <button class="filter-btn active" data-filter="all">All</button>
         <button class="filter-btn" data-filter="web">Web</button>
         <button class="filter-btn" data-filter="ai">AI</button>
-        <button class="filter-btn" data-filter="robotics">Robotics</button>
         <button class="filter-btn" data-filter="systems">Systems</button>
+        <button class="filter-btn" data-filter="mobile">Mobile</button>
       </div>
-      <div class="project-count"><span id="project-visible-count">6</span> projects</div>
+      <div class="project-count"><span id="project-visible-count">8</span> projects</div>
     </div>
 
     <div class="projects-grid" id="projects-grid">
-      <article class="project-card featured reveal" data-category="web">
+      <article class="project-card featured reveal" data-category="web ai systems">
         <div class="project-thumb">
-          <div class="project-thumb-inner">🌐</div>
-          <span class="project-status status-live">Live</span>
+          <div class="project-thumb-inner">🚨</div>
+          <span class="project-status status-live">Live on Vercel</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Ideathon · Prodinno · VIT Chennai</div>
+          <h3 class="project-title">Marauder's Crisis Map</h3>
+          <p class="project-desc">Campus emergency command center for VIT Chennai — live incident map, role-based dashboards (student, warden, security, admin), GPS reports, and AI-ranked response queues.</p>
+          <div class="project-stack">
+            <span class="stack-pill">HTML</span><span class="stack-pill">CSS</span><span class="stack-pill">JavaScript</span><span class="stack-pill">Vercel</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://the-marauder-s-crisis-map.vercel.app" target="_blank" rel="noopener">Live →</a>
+            <a class="project-link" href="https://github.com/abhinavshekhar/The-Marauder-s-Crisis-Map-" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal reveal-delay-1" data-category="web systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(34,211,238,0.08));">
+          <div class="project-thumb-inner">🚌</div>
+          <span class="project-status status-live">Live on Vercel</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Hackathon · Prompt War X Nexus</div>
+          <h3 class="project-title">MTC Companion+</h3>
+          <p class="project-desc">Smart multi-modal transit map for Chennai — live MTC bus simulation (21G, 570, M70), Metro Blue Line overlay, crowd reports, ETA alerts, last-mile hints, and a Green Score.</p>
+          <div class="project-stack">
+            <span class="stack-pill">React</span><span class="stack-pill">Vite</span><span class="stack-pill">Leaflet</span><span class="stack-pill">Express</span><span class="stack-pill">Vercel</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://mtc-companion-plus.vercel.app" target="_blank" rel="noopener">Live →</a>
+            <a class="project-link" href="https://github.com/abhinavshekhar/mtc-companion-plus" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal reveal-delay-2" data-category="web ai systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.14),rgba(167,139,250,0.1));">
+          <div class="project-thumb-inner">🌿</div>
+          <span class="project-status status-live">GitHub</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Hackathon · Civic OS</div>
+          <h3 class="project-title">VAAYU</h3>
+          <p class="project-desc">Chennai Smart Transit & Civic Intelligence OS — map-first civic dashboard from Prompt War X Nexus, covering transit, civic issues, and live city layers.</p>
+          <div class="project-stack">
+            <span class="stack-pill">HTML</span><span class="stack-pill">Leaflet</span><span class="stack-pill">JavaScript</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/abhinavshekhar/promptxnexus" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal" data-category="ai web systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(34,211,238,0.1));">
+          <div class="project-thumb-inner">🧠</div>
+          <span class="project-status status-build">GitHub</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">AI · Student OS</div>
+          <h3 class="project-title">AstraOS</h3>
+          <p class="project-desc">AI operating system for university students — academic ingestion, task intelligence, attendance risk, deterministic scheduling, and a Next.js + FastAPI platform with RAG agents.</p>
+          <div class="project-stack">
+            <span class="stack-pill">Next.js</span><span class="stack-pill">FastAPI</span><span class="stack-pill">PostgreSQL</span><span class="stack-pill">OpenAI</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/abhinavshekhar/vit-" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal reveal-delay-1" data-category="web systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(251,191,36,0.1));">
+          <div class="project-thumb-inner">🌾</div>
+          <span class="project-status status-live">Live on Pages</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Internship · Suminter India</div>
+          <h3 class="project-title">Farmer Registration Portal</h3>
+          <p class="project-desc">Web portal to register farmers and manage land records across Chittorgarh, Pratapgarh, and Neemuch — deployed on GitHub Pages.</p>
+          <div class="project-stack">
+            <span class="stack-pill">HTML</span><span class="stack-pill">CSS</span><span class="stack-pill">GitHub Pages</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://abhinavshekhar.github.io/suminter-farmer-data/" target="_blank" rel="noopener">Live →</a>
+            <a class="project-link" href="https://github.com/abhinavshekhar/suminter-farmer-data" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal reveal-delay-2" data-category="mobile systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.16),rgba(244,114,182,0.08));">
+          <div class="project-thumb-inner">📱</div>
+          <span class="project-status status-live">GitHub</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Internship · Android</div>
+          <h3 class="project-title">Farmer Survey App</h3>
+          <p class="project-desc">Native Android survey app in Kotlin + Jetpack Compose — offline-first Room cache, Firebase Auth/Firestore sync, GPS capture, and field-staff / admin flows.</p>
+          <div class="project-stack">
+            <span class="stack-pill">Kotlin</span><span class="stack-pill">Compose</span><span class="stack-pill">Room</span><span class="stack-pill">Firebase</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/abhinavshekhar/Farmer-record-app-internship-project" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal" data-category="web systems">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(34,211,238,0.1),rgba(148,163,184,0.1));">
+          <div class="project-thumb-inner">📋</div>
+          <span class="project-status status-build">GitHub</span>
+        </div>
+        <div class="project-body">
+          <div class="project-cat">Field Data · Supabase</div>
+          <h3 class="project-title">S-Data</h3>
+          <p class="project-desc">Field data collection portal that syncs farmer submissions to Supabase — Next.js frontend with cloud write-through for intern field work.</p>
+          <div class="project-stack">
+            <span class="stack-pill">Next.js</span><span class="stack-pill">TypeScript</span><span class="stack-pill">Supabase</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/abhinavshekhar/S-Data" target="_blank" rel="noopener">GitHub →</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reveal reveal-delay-1" data-category="web">
+        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(34,211,238,0.12),rgba(167,139,250,0.12));">
+          <div class="project-thumb-inner">✦</div>
+          <span class="project-status status-live">Live on Vercel</span>
         </div>
         <div class="project-body">
           <div class="project-cat">Web · Portfolio</div>
-          <h3 class="project-title">Personal Portfolio v2</h3>
-          <p class="project-desc">Next-gen student portfolio with particle backgrounds, scroll animations, 3D wireframe visuals, and a full project showcase — built from scratch.</p>
+          <h3 class="project-title">Personal Site</h3>
+          <p class="project-desc">This portfolio — next-gen UI, particle background, 3D wireframes, and the live project grid. Earlier Vercel alias still serves the previous version.</p>
           <div class="project-stack">
-            <span class="stack-pill">HTML</span><span class="stack-pill">CSS</span><span class="stack-pill">JavaScript</span><span class="stack-pill">SVG</span>
+            <span class="stack-pill">HTML</span><span class="stack-pill">CSS</span><span class="stack-pill">JavaScript</span><span class="stack-pill">Vercel</span>
           </div>
           <div class="project-links">
-            <a class="project-link" href="https://github.com/Abhinavshekhar/my-website" target="_blank">GitHub →</a>
-            <a class="project-link" href="#">Live Demo →</a>
-          </div>
-        </div>
-      </article>
-
-      <article class="project-card reveal reveal-delay-1" data-category="ai web">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(244,114,182,0.1));">
-          <div class="project-thumb-inner">🧬</div>
-          <span class="project-status status-live">Live</span>
-        </div>
-        <div class="project-body">
-          <div class="project-cat">AI · Visualization</div>
-          <h3 class="project-title">Neural Core Visualizer</h3>
-          <p class="project-desc">Interactive 3D node graph with draggable wireframe models — identity bust, neural network, and robotic arm scenes.</p>
-          <div class="project-stack">
-            <span class="stack-pill">JavaScript</span><span class="stack-pill">SVG</span><span class="stack-pill">3D Math</span>
-          </div>
-          <div class="project-links">
-            <a class="project-link" href="#projects">View in Hero →</a>
-          </div>
-        </div>
-      </article>
-
-      <article class="project-card reveal reveal-delay-2" data-category="robotics">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(34,211,238,0.08));">
-          <div class="project-thumb-inner">🤖</div>
-          <span class="project-status status-build">Building</span>
-        </div>
-        <div class="project-body">
-          <div class="project-cat">Robotics · Hardware</div>
-          <h3 class="project-title">Pathfinder Bot</h3>
-          <p class="project-desc">Line-following robot with IR sensors, PID control, and modular chassis — first hands-on robotics build.</p>
-          <div class="project-stack">
-            <span class="stack-pill">Arduino</span><span class="stack-pill">C++</span><span class="stack-pill">Electronics</span>
-          </div>
-          <div class="project-links">
-            <a class="project-link muted" href="#">Repo Soon</a>
-          </div>
-        </div>
-      </article>
-
-      <article class="project-card reveal" data-category="ai systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(251,191,36,0.1),rgba(244,114,182,0.08));">
-          <div class="project-thumb-inner">📊</div>
-          <span class="project-status status-build">Building</span>
-        </div>
-        <div class="project-body">
-          <div class="project-cat">AI · Tools</div>
-          <h3 class="project-title">DSA Progress Tracker</h3>
-          <p class="project-desc">Personal dashboard to track LeetCode/Codeforces progress, streaks, and topic-wise weak areas.</p>
-          <div class="project-stack">
-            <span class="stack-pill">Python</span><span class="stack-pill">Flask</span><span class="stack-pill">SQLite</span>
-          </div>
-          <div class="project-links">
-            <a class="project-link muted" href="#">In Development</a>
-          </div>
-        </div>
-      </article>
-
-      <article class="project-card reveal reveal-delay-1" data-category="ai">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(34,211,238,0.1),rgba(167,139,250,0.12));">
-          <div class="project-thumb-inner">👁</div>
-          <span class="project-status status-plan">Planned</span>
-        </div>
-        <div class="project-body">
-          <div class="project-cat">AI · Computer Vision</div>
-          <h3 class="project-title">Smart Attendance System</h3>
-          <p class="project-desc">Face recognition attendance using OpenCV and a lightweight embedding model — planned for second semester.</p>
-          <div class="project-stack">
-            <span class="stack-pill">Python</span><span class="stack-pill">OpenCV</span><span class="stack-pill">ML</span>
-          </div>
-          <div class="project-links">
-            <a class="project-link muted" href="#">Q3 2026</a>
-          </div>
-        </div>
-      </article>
-
-      <article class="project-card reveal reveal-delay-2" data-category="systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(148,163,184,0.1),rgba(34,211,238,0.08));">
-          <div class="project-thumb-inner">🗺</div>
-          <span class="project-status status-live">Complete</span>
-        </div>
-        <div class="project-body">
-          <div class="project-cat">Systems · CLI</div>
-          <h3 class="project-title">Campus Navigator CLI</h3>
-          <p class="project-desc">Terminal-based campus navigation tool built in C — graph search across VIT block connections.</p>
-          <div class="project-stack">
-            <span class="stack-pill">C</span><span class="stack-pill">DSA</span><span class="stack-pill">Graphs</span>
-          </div>
-          <div class="project-links">
-            <a class="project-link" href="https://github.com/Abhinavshekhar" target="_blank">GitHub →</a>
+            <a class="project-link" href="https://abhinavshekhar.vercel.app" target="_blank" rel="noopener">Live →</a>
+            <a class="project-link" href="https://github.com/abhinavshekhar/my-website" target="_blank" rel="noopener">GitHub →</a>
           </div>
         </div>
       </article>
@@ -949,7 +988,7 @@
       <div class="campus-card reveal reveal-delay-3">
         <div class="campus-label">Beyond Class</div>
         <div class="campus-title">Hackathons & More</div>
-        <div class="campus-body">Gaming, gym, music, and competitive coding — keeping balance while pushing hard on tech.</div>
+        <div class="campus-body">Prompt War X Nexus, Prodinno Ideathon, plus gaming, gym, music, and competitive coding.</div>
       </div>
     </div>
   </section>
