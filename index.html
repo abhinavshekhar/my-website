@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,17 @@
 <meta name="description" content="First-year CSE student at VIT Chennai. Building at the intersection of AI and robotics.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var saved = localStorage.getItem('theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 <style>
-  :root {
+  :root,
+  [data-theme="dark"] {
+    color-scheme: dark;
     --bg: #030712;
     --bg-2: #0a0f1c;
     --surface: rgba(15, 23, 42, 0.55);
@@ -23,6 +32,14 @@
     --pink: #f472b6;
     --amber: #fbbf24;
     --green: #34d399;
+    --nav-bg: rgba(3, 7, 18, 0.72);
+    --nav-menu-bg: rgba(10, 15, 28, 0.95);
+    --grid-line: rgba(255, 255, 255, 0.025);
+    --hero-gradient-start: #fff;
+    --btn-primary-text: #030712;
+    --particle-dot: rgba(34, 211, 238, 0.35);
+    --particle-line: rgba(167, 139, 250, 0.08);
+    --orb-opacity: 0.45;
     --display: 'Syne', sans-serif;
     --body: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
@@ -30,6 +47,33 @@
     --radius-sm: 12px;
     --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f7fb;
+    --bg-2: #e8eef6;
+    --surface: rgba(255, 255, 255, 0.82);
+    --surface-2: rgba(241, 245, 249, 0.92);
+    --border: rgba(15, 23, 42, 0.1);
+    --border-glow: rgba(14, 116, 144, 0.28);
+    --text: #0f172a;
+    --text-dim: #475569;
+    --text-faint: #64748b;
+    --cyan: #0891b2;
+    --violet: #7c3aed;
+    --pink: #db2777;
+    --amber: #d97706;
+    --green: #059669;
+    --nav-bg: rgba(244, 247, 251, 0.88);
+    --nav-menu-bg: rgba(255, 255, 255, 0.96);
+    --grid-line: rgba(15, 23, 42, 0.05);
+    --hero-gradient-start: #0f172a;
+    --btn-primary-text: #f8fafc;
+    --particle-dot: rgba(8, 145, 178, 0.28);
+    --particle-line: rgba(124, 58, 237, 0.07);
+    --orb-opacity: 0.22;
+    --shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
   }
 
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,7 +91,7 @@
     overflow: hidden;
   }
   .orb {
-    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.45;
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: var(--orb-opacity);
     animation: floatOrb 18s var(--ease) infinite alternate;
   }
   .orb-1 { width: 520px; height: 520px; background: #4c1d95; top: -120px; left: -80px; }
@@ -60,8 +104,8 @@
   .grid-overlay {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background-image:
-      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 64px 64px;
     mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black, transparent 85%);
   }
@@ -80,7 +124,7 @@
     transition: background 0.4s var(--ease), border-color 0.4s, backdrop-filter 0.4s;
   }
   nav.scrolled {
-    background: rgba(3, 7, 18, 0.72);
+    background: var(--nav-bg);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
   }
@@ -114,11 +158,23 @@
     transition: color 0.25s, background 0.25s;
   }
   .nav-links a:hover, .nav-links a.active {
-    color: var(--text); background: rgba(255,255,255,0.06);
+    color: var(--text); background: var(--surface-2);
   }
+  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .theme-toggle {
+    width: 42px; height: 42px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); cursor: pointer; font-size: 1rem;
+    display: grid; place-items: center;
+    transition: transform 0.25s var(--ease), border-color 0.25s, background 0.25s;
+  }
+  .theme-toggle:hover { transform: translateY(-2px); border-color: var(--border-glow); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="light"] .theme-toggle .icon-moon { display: block; }
   .nav-cta {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
-    text-decoration: none; color: var(--bg);
+    text-decoration: none; color: var(--btn-primary-text);
     background: linear-gradient(135deg, var(--cyan), var(--violet));
     padding: 11px 18px; border-radius: 999px; font-weight: 600;
     transition: transform 0.25s var(--ease), box-shadow 0.25s;
@@ -134,7 +190,7 @@
     .nav-links.open {
       display: flex; flex-direction: column; position: absolute;
       top: calc(100% + 8px); left: 24px; right: 24px;
-      background: rgba(10,15,28,0.95); backdrop-filter: blur(16px);
+      background: var(--nav-menu-bg); backdrop-filter: blur(16px);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
       padding: 12px;
     }
@@ -153,7 +209,8 @@
     display: inline-flex; align-items: center; gap: 10px;
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--cyan);
-    border: 1px solid rgba(34,211,238,0.25); background: rgba(34,211,238,0.08);
+    border: 1px solid color-mix(in srgb, var(--cyan) 25%, transparent);
+    background: color-mix(in srgb, var(--cyan) 8%, transparent);
     padding: 8px 14px; border-radius: 999px; margin-bottom: 24px;
   }
   .hero-badge .live {
@@ -168,7 +225,7 @@
     letter-spacing: -0.03em; margin-bottom: 18px;
   }
   .hero-title .gradient {
-    background: linear-gradient(120deg, #fff 0%, var(--cyan) 45%, var(--violet) 80%, var(--pink) 100%);
+    background: linear-gradient(120deg, var(--hero-gradient-start) 0%, var(--cyan) 45%, var(--violet) 80%, var(--pink) 100%);
     background-size: 200% auto;
     -webkit-background-clip: text; background-clip: text; color: transparent;
     animation: shimmer 8s linear infinite;
@@ -193,15 +250,36 @@
     border: none; cursor: pointer;
   }
   .btn-primary {
-    color: var(--bg); background: linear-gradient(135deg, var(--cyan), #818cf8);
-    box-shadow: 0 12px 40px rgba(34,211,238,0.25);
+    color: var(--btn-primary-text); background: linear-gradient(135deg, var(--cyan), #818cf8);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--cyan) 25%, transparent);
   }
-  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(34,211,238,0.35); }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px color-mix(in srgb, var(--cyan) 35%, transparent); }
   .btn-ghost {
-    color: var(--text); background: rgba(255,255,255,0.04);
+    color: var(--text); background: var(--surface);
     border: 1px solid var(--border);
   }
-  .btn-ghost:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+  .btn-ghost:hover { background: var(--surface-2); transform: translateY(-2px); }
+
+  .hero-profile {
+    display: flex; align-items: center; gap: 18px; margin-bottom: 28px;
+  }
+  .hero-photo-wrap {
+    position: relative; width: 92px; height: 92px; flex-shrink: 0;
+  }
+  .hero-photo {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 24px;
+    border: 2px solid var(--border); box-shadow: var(--shadow);
+  }
+  .hero-photo-ring {
+    position: absolute; inset: -6px; border-radius: 28px;
+    border: 1px dashed color-mix(in srgb, var(--cyan) 45%, transparent);
+    animation: spinSlow 18s linear infinite;
+  }
+  .hero-profile-meta { min-width: 0; }
+  .hero-profile-name {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;
+  }
+  .hero-profile-role { font-size: 0.9rem; color: var(--text-dim); }
 
   .hero-metrics {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
@@ -389,6 +467,76 @@
     background: linear-gradient(90deg, var(--cyan), var(--violet));
     width: 0; transition: width 1.2s var(--ease);
   }
+
+  .stack-groups { display: flex; flex-direction: column; gap: 36px; }
+  .stack-group-title {
+    font-family: var(--display); font-weight: 700; font-size: 1.15rem;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .stack-group-title::before {
+    content: ''; width: 28px; height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+  }
+  .stack-group-note {
+    font-size: 0.92rem; color: var(--text-dim); margin: -8px 0 16px;
+  }
+  .bento-cell.sem-tag {
+    grid-column: span 12; padding: 14px 18px;
+    background: color-mix(in srgb, var(--violet) 8%, transparent);
+    border-style: dashed;
+  }
+  .sem-tag-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--violet);
+  }
+
+  /* ===== GALLERY DECK ===== */
+  .gallery-deck { position: relative; padding: 8px 0 24px; }
+  .deck-stage {
+    position: relative; height: 420px; perspective: 1200px;
+    display: grid; place-items: center;
+  }
+  @media (max-width: 640px) { .deck-stage { height: 360px; } }
+  .deck-card {
+    position: absolute; width: min(320px, 82vw); aspect-ratio: 4/5;
+    border-radius: 24px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface);
+    box-shadow: var(--shadow); transform-origin: center bottom;
+    transition: transform 0.55s var(--ease), opacity 0.45s, filter 0.45s;
+    cursor: grab; user-select: none;
+  }
+  .deck-card img {
+    width: 100%; height: 72%; object-fit: cover; display: block;
+  }
+  .deck-card-visual {
+    height: 72%; display: grid; place-items: center; font-size: 4rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 18%, transparent), color-mix(in srgb, var(--violet) 14%, transparent));
+  }
+  .deck-card-body { padding: 16px 18px; }
+  .deck-card-tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--pink); margin-bottom: 6px;
+  }
+  .deck-card-title {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;
+  }
+  .deck-card-sub { font-size: 0.85rem; color: var(--text-dim); line-height: 1.45; }
+  .deck-controls {
+    display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 28px;
+  }
+  .deck-btn {
+    width: 44px; height: 44px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); cursor: pointer; font-size: 1.1rem;
+    transition: transform 0.25s, border-color 0.25s;
+  }
+  .deck-btn:hover { transform: translateY(-2px); border-color: var(--border-glow); }
+  .deck-dots { display: flex; gap: 8px; }
+  .deck-dot {
+    width: 8px; height: 8px; border-radius: 999px; border: none;
+    background: var(--border); cursor: pointer; transition: transform 0.25s, background 0.25s;
+  }
+  .deck-dot.active { background: var(--cyan); transform: scale(1.25); }
 
   .project-toolbar {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -608,12 +756,19 @@
     <a class="brand" href="#"><span class="brand-dot"></span>Abhinav.dev</a>
     <ul class="nav-links" id="nav-links">
       <li><a href="#schooling">Journey</a></li>
+      <li><a href="#gallery">Gallery</a></li>
       <li><a href="#learning">Skills</a></li>
       <li><a href="#projects">Projects</a></li>
       <li><a href="#ambitions">Vision</a></li>
       <li><a href="#campus">Campus</a></li>
     </ul>
-    <a class="nav-cta" href="#contact">Let's Connect</a>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark and light mode">
+        <span class="icon-sun" aria-hidden="true">☀</span>
+        <span class="icon-moon" aria-hidden="true">☾</span>
+      </button>
+      <a class="nav-cta" href="#contact">Let's Connect</a>
+    </div>
     <button class="menu-btn" id="menu-btn" aria-label="Menu">☰</button>
   </div>
 </nav>
@@ -621,6 +776,16 @@
 <div class="wrap">
   <section class="hero">
     <div class="hero-copy">
+      <div class="hero-profile reveal">
+        <div class="hero-photo-wrap">
+          <span class="hero-photo-ring" aria-hidden="true"></span>
+          <img class="hero-photo" src="assets/profile.jpg" alt="Abhinav Shekhar — first-year CSE student at VIT Chennai" width="92" height="92">
+        </div>
+        <div class="hero-profile-meta">
+          <div class="hero-profile-name">Abhinav Shekhar</div>
+          <div class="hero-profile-role">B.Tech CSE · AI & Robotics · VIT Chennai</div>
+        </div>
+      </div>
       <div class="hero-badge reveal"><span class="live"></span> First Year · VIT Chennai</div>
       <h1 class="hero-title reveal reveal-delay-1">
         Abhinav<br><span class="gradient">Shekhar</span>
@@ -670,22 +835,22 @@
 
 <div class="marquee-wrap">
   <div class="marquee-track">
-    <span class="marquee-item"><span>◆</span> Python</span>
-    <span class="marquee-item"><span>◆</span> C / C++</span>
-    <span class="marquee-item"><span>◆</span> Machine Learning</span>
-    <span class="marquee-item"><span>◆</span> Robotics</span>
-    <span class="marquee-item"><span>◆</span> OpenCV</span>
-    <span class="marquee-item"><span>◆</span> Arduino</span>
-    <span class="marquee-item"><span>◆</span> Linear Algebra</span>
+    <span class="marquee-item"><span>◆</span> Engineering Maths</span>
+    <span class="marquee-item"><span>◆</span> C & Python</span>
+    <span class="marquee-item"><span>◆</span> Digital Logic</span>
+    <span class="marquee-item"><span>◆</span> MDP</span>
+    <span class="marquee-item"><span>◆</span> AI & Robotics</span>
+    <span class="marquee-item"><span>◆</span> DSA</span>
     <span class="marquee-item"><span>◆</span> Web Dev</span>
-    <span class="marquee-item"><span>◆</span> Python</span>
-    <span class="marquee-item"><span>◆</span> C / C++</span>
-    <span class="marquee-item"><span>◆</span> Machine Learning</span>
-    <span class="marquee-item"><span>◆</span> Robotics</span>
-    <span class="marquee-item"><span>◆</span> OpenCV</span>
-    <span class="marquee-item"><span>◆</span> Arduino</span>
-    <span class="marquee-item"><span>◆</span> Linear Algebra</span>
+    <span class="marquee-item"><span>◆</span> VIT Chennai</span>
+    <span class="marquee-item"><span>◆</span> Engineering Maths</span>
+    <span class="marquee-item"><span>◆</span> C & Python</span>
+    <span class="marquee-item"><span>◆</span> Digital Logic</span>
+    <span class="marquee-item"><span>◆</span> MDP</span>
+    <span class="marquee-item"><span>◆</span> AI & Robotics</span>
+    <span class="marquee-item"><span>◆</span> DSA</span>
     <span class="marquee-item"><span>◆</span> Web Dev</span>
+    <span class="marquee-item"><span>◆</span> VIT Chennai</span>
   </div>
 </div>
 
@@ -718,42 +883,206 @@
     </div>
   </section>
 
+  <section id="gallery">
+    <div class="section-head reveal">
+      <div class="section-kicker">Gallery Deck</div>
+      <h2 class="section-title">Moments & Builds</h2>
+      <p class="section-desc">Swipe through campus life, hackathons, projects, and the journey from Samastipur to Chennai.</p>
+    </div>
+    <div class="gallery-deck reveal">
+      <div class="deck-stage" id="deck-stage">
+        <article class="deck-card" data-index="0">
+          <img src="assets/profile.jpg" alt="Abhinav Shekhar portrait">
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Portrait</div>
+            <div class="deck-card-title">Abhinav Shekhar</div>
+            <div class="deck-card-sub">First-year CSE (AI & Robotics) at VIT Chennai — building toward embodied intelligence.</div>
+          </div>
+        </article>
+        <article class="deck-card" data-index="1">
+          <div class="deck-card-visual">🏫</div>
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Campus</div>
+            <div class="deck-card-title">VIT Chennai</div>
+            <div class="deck-card-sub">Vandalur–Kelambakkam Road — labs, hostel blocks, and late-night build sessions.</div>
+          </div>
+        </article>
+        <article class="deck-card" data-index="2">
+          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(52,211,153,0.18),rgba(34,211,238,0.12));">🚌</div>
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Hackathon</div>
+            <div class="deck-card-title">MTC Companion+</div>
+            <div class="deck-card-sub">Prompt War X Nexus — Chennai transit map with live bus simulation and crowd reports.</div>
+          </div>
+        </article>
+        <article class="deck-card" data-index="3">
+          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(244,114,182,0.16),rgba(167,139,250,0.12));">🚨</div>
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Ideathon</div>
+            <div class="deck-card-title">Marauder's Crisis Map</div>
+            <div class="deck-card-sub">Prodinno club ideathon — real-time VIT emergency command center with role dashboards.</div>
+          </div>
+        </article>
+        <article class="deck-card" data-index="4">
+          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(251,191,36,0.14),rgba(52,211,153,0.1));">🌾</div>
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Internship</div>
+            <div class="deck-card-title">Suminter India</div>
+            <div class="deck-card-sub">Farmer registration portal and Android survey app across Chittorgarh, Pratapgarh & Neemuch.</div>
+          </div>
+        </article>
+        <article class="deck-card" data-index="5">
+          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(34,211,238,0.14),rgba(244,114,182,0.1));">🏠</div>
+          <div class="deck-card-body">
+            <div class="deck-card-tag">Roots</div>
+            <div class="deck-card-title">Samastipur, Bihar</div>
+            <div class="deck-card-sub">Home base — DPS Class X (93.2%) to Holy Mission XII (83%) to engineering at VIT.</div>
+          </div>
+        </article>
+      </div>
+      <div class="deck-controls">
+        <button class="deck-btn" id="deck-prev" type="button" aria-label="Previous gallery card">←</button>
+        <div class="deck-dots" id="deck-dots"></div>
+        <button class="deck-btn" id="deck-next" type="button" aria-label="Next gallery card">→</button>
+      </div>
+    </div>
+  </section>
+
   <section id="learning">
     <div class="section-head reveal">
       <div class="section-kicker">02 — Active Stack</div>
       <h2 class="section-title">What I'm Learning</h2>
-      <p class="section-desc">First-year curriculum plus self-driven exploration across code, math, and hardware.</p>
+      <p class="section-desc">First-year VIT CSE (AI & Robotics) core subjects, MDP, and the self-driven skills I'm building alongside class.</p>
     </div>
-    <div class="bento">
-      <div class="bento-cell reveal">
-        <div class="skill-icon">⌨</div>
-        <div class="skill-name">Problem Solving & C/Python</div>
-        <div class="skill-meta">Core programming foundations — Semester 1–2</div>
-        <div class="progress-track"><div class="progress-fill" data-progress="55"></div></div>
+
+    <div class="stack-groups">
+      <div class="stack-group reveal">
+        <h3 class="stack-group-title">Semester 1 · Core Subjects</h3>
+        <p class="stack-group-note">Current first-year foundation courses at VIT Chennai.</p>
+        <div class="bento">
+          <div class="bento-cell reveal">
+            <div class="skill-icon">∑</div>
+            <div class="skill-name">Engineering Mathematics I</div>
+            <div class="skill-meta">Calculus, limits, differentiation — base for ML & control theory</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="35"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">⌨</div>
+            <div class="skill-name">Problem Solving using C & Python</div>
+            <div class="skill-meta">Programming logic, loops, functions, and problem decomposition</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="55"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">⚛</div>
+            <div class="skill-name">Engineering Physics</div>
+            <div class="skill-meta">Mechanics, waves, and applied physics for engineering systems</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="30"></div></div>
+          </div>
+          <div class="bento-cell reveal">
+            <div class="skill-icon">📐</div>
+            <div class="skill-name">Engineering Graphics</div>
+            <div class="skill-meta">Technical drawing, projections, and CAD fundamentals</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="40"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">🌱</div>
+            <div class="skill-name">Environmental Science</div>
+            <div class="skill-meta">Sustainability, ecology, and engineering ethics</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="25"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">🗣</div>
+            <div class="skill-name">Soft Skills & English</div>
+            <div class="skill-meta">Communication, presentations, and professional writing</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="50"></div></div>
+          </div>
+        </div>
       </div>
-      <div class="bento-cell reveal reveal-delay-1">
-        <div class="skill-icon">∑</div>
-        <div class="skill-name">Calculus & Linear Algebra</div>
-        <div class="skill-meta">Math backbone for ML & robotics control</div>
-        <div class="progress-track"><div class="progress-fill" data-progress="10"></div></div>
+
+      <div class="stack-group reveal">
+        <h3 class="stack-group-title">Semester 2 · Core Subjects</h3>
+        <p class="stack-group-note">Upcoming / early exposure in the second semester track.</p>
+        <div class="bento">
+          <div class="bento-cell reveal">
+            <div class="skill-icon">📊</div>
+            <div class="skill-name">Engineering Mathematics II</div>
+            <div class="skill-meta">Linear algebra, matrices, and series — backbone for ML</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="10"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">⚡</div>
+            <div class="skill-name">Digital Logic Design</div>
+            <div class="skill-meta">Boolean algebra, gates, and combinational circuits</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="5"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">🧩</div>
+            <div class="skill-name">Object-Oriented Programming</div>
+            <div class="skill-meta">Classes, inheritance, and structured software design</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="15"></div></div>
+          </div>
+          <div class="bento-cell reveal">
+            <div class="skill-icon">🔗</div>
+            <div class="skill-name">Data Structures</div>
+            <div class="skill-meta">Arrays, linked lists, stacks, queues, and trees</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="8"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">🔬</div>
+            <div class="skill-name">Chemistry for Engineers</div>
+            <div class="skill-meta">Materials, reactions, and lab fundamentals</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="5"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">🔌</div>
+            <div class="skill-name">Electronics for Engineers</div>
+            <div class="skill-meta">Semiconductors, circuits, and robotics hardware basics</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="5"></div></div>
+          </div>
+        </div>
       </div>
-      <div class="bento-cell reveal reveal-delay-2">
-        <div class="skill-icon">⚡</div>
-        <div class="skill-name">Digital Logic & Electronics</div>
-        <div class="skill-meta">Hardware fundamentals for robotics</div>
-        <div class="progress-track"><div class="progress-fill" data-progress="5"></div></div>
-      </div>
-      <div class="bento-cell wide reveal">
-        <div class="skill-icon">🧠</div>
-        <div class="skill-name">Intro to AI Concepts</div>
-        <div class="skill-meta">Early exposure to neural networks, search, and intelligent agents</div>
-        <div class="progress-track"><div class="progress-fill" data-progress="100"></div></div>
-      </div>
-      <div class="bento-cell wide reveal reveal-delay-1">
-        <div class="skill-icon">🦾</div>
-        <div class="skill-name">Engineering Graphics / Mechanics</div>
-        <div class="skill-meta">CAD, kinematics, and mechanical design for robotic systems</div>
-        <div class="progress-track"><div class="progress-fill" data-progress="40"></div></div>
+
+      <div class="stack-group reveal">
+        <h3 class="stack-group-title">MDP & Important Self-Learning</h3>
+        <p class="stack-group-note">Mini Design Project plus the skills I'm actively building outside the timetable.</p>
+        <div class="bento">
+          <div class="bento-cell wide reveal">
+            <div class="skill-icon">🛠</div>
+            <div class="skill-name">MDP — Mini Design Project</div>
+            <div class="skill-meta">Team prototype, documentation, demo, and presentation — first-year engineering design project</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="20"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">🧠</div>
+            <div class="skill-name">Intro to AI Concepts</div>
+            <div class="skill-meta">Search, agents, neural networks, and intelligent systems</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="45"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">🦾</div>
+            <div class="skill-name">Engineering Mechanics</div>
+            <div class="skill-meta">Statics, dynamics, and mechanical design for robotics</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="20"></div></div>
+          </div>
+          <div class="bento-cell reveal">
+            <div class="skill-icon">🌐</div>
+            <div class="skill-name">Web Development</div>
+            <div class="skill-meta">Portfolio builds, hackathon sites, and UI engineering</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="70"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-1">
+            <div class="skill-icon">🧮</div>
+            <div class="skill-name">DSA Practice</div>
+            <div class="skill-meta">LeetCode / Codeforces — arrays, strings, and logic drills</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="30"></div></div>
+          </div>
+          <div class="bento-cell reveal reveal-delay-2">
+            <div class="skill-icon">🤖</div>
+            <div class="skill-name">Robotics Exploration</div>
+            <div class="skill-meta">Arduino, sensors, and first hardware builds beyond class</div>
+            <div class="progress-track"><div class="progress-fill" data-progress="15"></div></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1023,6 +1352,70 @@ window.addEventListener('load', () => {
   setTimeout(() => document.getElementById('loader').classList.add('done'), 600);
 });
 
+(function initTheme() {
+  const root = document.documentElement;
+  const toggle = document.getElementById('theme-toggle');
+  function setTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+  }
+  toggle.addEventListener('click', () => {
+    setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+})();
+
+(function initGalleryDeck() {
+  const cards = Array.from(document.querySelectorAll('.deck-card'));
+  const dotsWrap = document.getElementById('deck-dots');
+  let active = 0;
+  if (!cards.length) return;
+
+  cards.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'deck-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Show gallery card ' + (i + 1));
+    dot.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(dot);
+  });
+
+  function layout() {
+    cards.forEach((card, i) => {
+      const offset = i - active;
+      const abs = Math.abs(offset);
+      const hidden = abs > 2;
+      card.style.zIndex = String(100 - abs);
+      card.style.opacity = hidden ? '0' : String(1 - abs * 0.18);
+      card.style.pointerEvents = offset === 0 ? 'auto' : 'none';
+      card.style.transform = hidden
+        ? 'translateX(' + (offset * 120) + 'px) translateY(40px) scale(0.8) rotate(' + (offset * 6) + 'deg)'
+        : 'translateX(' + (offset * 34) + 'px) translateY(' + (abs * 12) + 'px) scale(' + (1 - abs * 0.06) + ') rotate(' + (offset * 3) + 'deg)';
+    });
+    dotsWrap.querySelectorAll('.deck-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === active);
+    });
+  }
+
+  function goTo(index) {
+    active = (index + cards.length) % cards.length;
+    layout();
+  }
+
+  document.getElementById('deck-prev').addEventListener('click', () => goTo(active - 1));
+  document.getElementById('deck-next').addEventListener('click', () => goTo(active + 1));
+
+  let startX = 0;
+  const stage = document.getElementById('deck-stage');
+  stage.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+  stage.addEventListener('pointerup', (e) => {
+    const delta = e.clientX - startX;
+    if (Math.abs(delta) > 40) goTo(active + (delta < 0 ? 1 : -1));
+  });
+
+  layout();
+})();
+
 const nav = document.getElementById('nav');
 const navLinks = document.getElementById('nav-links');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40));
@@ -1097,7 +1490,13 @@ filterBtns.forEach(btn => {
       r: Math.random()*1.5+0.5
     });
   }
+  function particleColors() {
+    return document.documentElement.getAttribute('data-theme') === 'light'
+      ? { dot: 'rgba(8,145,178,0.28)', line: '124,58,237' }
+      : { dot: 'rgba(34,211,238,0.35)', line: '167,139,250' };
+  }
   function draw(){
+    const colors = particleColors();
     ctx.clearRect(0,0,w,h);
     particles.forEach((p,i) => {
       p.x += p.vx; p.y += p.vy;
@@ -1105,7 +1504,7 @@ filterBtns.forEach(btn => {
       if(p.y<0||p.y>h) p.vy*=-1;
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(34,211,238,0.35)';
+      ctx.fillStyle = colors.dot;
       ctx.fill();
       for(let j=i+1;j<particles.length;j++){
         const q = particles[j];
@@ -1113,13 +1512,14 @@ filterBtns.forEach(btn => {
         if(dist < 120){
           ctx.beginPath();
           ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y);
-          ctx.strokeStyle = `rgba(167,139,250,${0.08*(1-dist/120)})`;
+          ctx.strokeStyle = 'rgba(' + colors.line + ',' + (0.08*(1-dist/120)).toFixed(3) + ')';
           ctx.stroke();
         }
       }
     });
     requestAnimationFrame(draw);
   }
+  window.addEventListener('themechange', () => {});
   draw();
 })();
 
