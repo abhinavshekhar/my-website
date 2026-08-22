@@ -1,0 +1,44 @@
+<!--
+  F Block poster shell.
+  Replace {{TOKENS}} then save to fblock-events/generated/{slug}.html
+  Tokens: TYPE TITLE SLOGAN VERNACULAR DATE TIME VENUE AUDIENCE ENTRY
+          ACTIVITIES (JSON array of {icon,label}) SURPRISE CTA ORGANIZER
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}} — F Block Hostel</title>
+  <link rel="stylesheet" href="../../../fblock-events/poster.css">
+</head>
+<body class="print-only">
+  <article class="poster theme-{{TYPE}}">
+    <header class="poster-header">
+      <div class="vit-lockup">VIT <span>CHENNAI</span></div>
+      <p class="presents"><span class="ornament">❀</span> F BLOCK HOSTEL PRESENTS <span class="ornament">❀</span></p>
+    </header>
+    <div class="hero">
+      <div class="motif" aria-hidden="true"></div>
+      <h1 class="title">{{TITLE}}</h1>
+      <p class="slogan"><span>{{SLOGAN}}</span></p>
+      <p class="vernacular">{{VERNACULAR}}</p>
+    </div>
+    <ul class="logistics">
+      <li><i>📅</i><b>Date</b>{{DATE}}</li>
+      <li><i>🕖</i><b>Time</b>{{TIME}}</li>
+      <li><i>📍</i><b>Location</b>{{VENUE}}</li>
+      <li><i>👥</i><b>Who</b>{{AUDIENCE}}</li>
+      <li class="badge">{{ENTRY}}</li>
+    </ul>
+    <section class="awaiting">
+      <h2>What's Awaiting You?</h2>
+      <ul class="acts">{{ACTIVITIES_HTML}}</ul>
+    </section>
+    <p class="surprise">{{SURPRISE}}</p>
+    <div class="scene" aria-hidden="true"></div>
+    <p class="cta">{{CTA}}</p>
+    <p class="credits">{{ORGANIZER}}</p>
+  </article>
+</body>
+</html>

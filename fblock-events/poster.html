@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F Block Event Poster Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&family=Cormorant+Garamond:wght@600;700&family=Kaushan+Script&family=Noto+Sans+Malayalam:wght@500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="poster.css">
+</head>
+<body>
+  <div class="builder-app">
+    <aside class="builder-panel">
+      <h1>F Block Event Templates</h1>
+      <p class="lede">VIT Chennai · F Block Hostel posters. Pick a festival or hostel event, fill the details, then print A4.</p>
+
+      <label for="type">Event type</label>
+      <select id="type"></select>
+
+      <label for="title">Title</label>
+      <input id="title" autocomplete="off">
+
+      <label for="slogan">Slogan</label>
+      <input id="slogan" autocomplete="off">
+
+      <label for="vernacular">Vernacular / extra line</label>
+      <input id="vernacular" autocomplete="off">
+
+      <label for="date">Date</label>
+      <input id="date" autocomplete="off">
+
+      <label for="time">Time</label>
+      <input id="time" autocomplete="off">
+
+      <label for="venue">Location</label>
+      <input id="venue" autocomplete="off">
+
+      <label for="audience">Audience</label>
+      <input id="audience" autocomplete="off">
+
+      <label for="entry">Entry badge</label>
+      <input id="entry" autocomplete="off">
+
+      <label for="activities">Activities (one per line, optional emoji at start)</label>
+      <textarea id="activities"></textarea>
+
+      <label for="surprise">Surprise strip</label>
+      <input id="surprise" autocomplete="off">
+
+      <label for="cta">Call to action</label>
+      <input id="cta" autocomplete="off">
+
+      <label for="organizer">Credits</label>
+      <input id="organizer" autocomplete="off">
+
+      <div class="builder-actions">
+        <button type="button" id="print-btn">Print / PDF</button>
+        <button type="button" class="ghost" id="wa-btn">Copy WhatsApp</button>
+      </div>
+    </aside>
+
+    <main class="preview-wrap">
+      <article class="poster theme-onam" id="poster">
+        <header class="poster-header">
+          <div class="vit-lockup">VIT <span>CHENNAI</span></div>
+          <p class="presents"><span class="ornament">❀</span> F BLOCK HOSTEL PRESENTS <span class="ornament">❀</span></p>
+        </header>
+        <div class="hero">
+          <div class="motif" aria-hidden="true"></div>
+          <h1 class="title" id="p-title">Onaverse</h1>
+          <p class="slogan"><span id="p-slogan">Where Tradition Meets Tomorrow</span></p>
+          <p class="vernacular" id="p-vernacular">ഓണാശംസകൾ — F Block Onam</p>
+        </div>
+        <ul class="logistics">
+          <li><i>📅</i><b>Date</b><span id="p-date">26 August</span></li>
+          <li><i>🕖</i><b>Time</b><span id="p-time">7:00 AM to 3:00 PM</span></li>
+          <li><i>📍</i><b>Location</b><span id="p-venue">F Block Ground Floor</span></li>
+          <li><i>👥</i><b>Who</b><span id="p-audience">F Block residents</span></li>
+          <li class="badge" id="p-entry">FREE ENTRY</li>
+        </ul>
+        <section class="awaiting">
+          <h2>What's Awaiting You?</h2>
+          <ul class="acts" id="p-acts"></ul>
+        </section>
+        <p class="surprise" id="p-surprise">+ Some Special Surprises + WE'RE NOT TELLING YOU YET! 😉</p>
+        <div class="scene" aria-hidden="true"></div>
+        <p class="cta" id="p-cta">— Wear Your Onam Best — SEE YOU THERE!</p>
+        <p class="credits" id="p-credits">Organized by — Onaverse Core Team · F Block Hostel</p>
+      </article>
+    </main>
+  </div>
+  <script src="poster.js"></script>
+</body>
+</html>
