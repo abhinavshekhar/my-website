@@ -1,0 +1,100 @@
+{
+  "onam": {
+    "paper": "#F6E7C1",
+    "ink": "#1F4D2A",
+    "accent": "#E07A2F",
+    "gold": "#C9A227",
+    "banner": "#7A1F2B"
+  },
+  "diwali": {
+    "paper": "#1B1230",
+    "ink": "#F7E7C3",
+    "accent": "#F0A202",
+    "gold": "#E8C547",
+    "banner": "#8B1E3F"
+  },
+  "holi": {
+    "paper": "#FFF7F0",
+    "ink": "#3B1F4A",
+    "accent": "#E8316B",
+    "gold": "#FFD23F",
+    "banner": "#1282A2"
+  },
+  "pongal": {
+    "paper": "#F4E1C1",
+    "ink": "#6B2D12",
+    "accent": "#E09F3E",
+    "gold": "#F6C445",
+    "banner": "#2D6A4F"
+  },
+  "eid": {
+    "paper": "#0F2A22",
+    "ink": "#F3E9C8",
+    "accent": "#D4AF37",
+    "gold": "#E8D48B",
+    "banner": "#1B4332"
+  },
+  "christmas": {
+    "paper": "#F7F1E3",
+    "ink": "#1B4332",
+    "accent": "#C1121F",
+    "gold": "#D4A017",
+    "banner": "#1B4332"
+  },
+  "freshers": {
+    "paper": "#F4F0E6",
+    "ink": "#1D3557",
+    "accent": "#E63946",
+    "gold": "#F4A261",
+    "banner": "#457B9D"
+  },
+  "farewell": {
+    "paper": "#EDE4D3",
+    "ink": "#3D2B1F",
+    "accent": "#9C6644",
+    "gold": "#C9A227",
+    "banner": "#5C3A2E"
+  },
+  "hostel-day": {
+    "paper": "#F6E7C1",
+    "ink": "#1F4D2A",
+    "accent": "#BC4749",
+    "gold": "#C9A227",
+    "banner": "#6A040F"
+  },
+  "sports": {
+    "paper": "#F4F1EA",
+    "ink": "#1B1B1B",
+    "accent": "#E63946",
+    "gold": "#F4A261",
+    "banner": "#1D3557"
+  },
+  "tech": {
+    "paper": "#0B1220",
+    "ink": "#E2E8F0",
+    "accent": "#22D3EE",
+    "gold": "#A78BFA",
+    "banner": "#1E293B"
+  },
+  "quiz": {
+    "paper": "#F7F3E8",
+    "ink": "#24305E",
+    "accent": "#F76C6C",
+    "gold": "#F8E9A1",
+    "banner": "#374785"
+  },
+  "music": {
+    "paper": "#1A1025",
+    "ink": "#FDE2E4",
+    "accent": "#FF7AA2",
+    "gold": "#F9C74F",
+    "banner": "#6D2E46"
+  },
+  "hostel-generic": {
+    "paper": "#F6E7C1",
+    "ink": "#1F4D2A",
+    "accent": "#E07A2F",
+    "gold": "#C9A227",
+    "banner": "#7A1F2B"
+  }
+}
