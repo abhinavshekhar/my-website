@@ -132,8 +132,14 @@ body {
 .poster > * { position: relative; z-index: 1; }
 
 .poster-header { text-align: center; }
+.vit-logo {
+  display: block;
+  height: 72px;
+  width: auto;
+  margin: 0 auto 4px;
+}
 .vit-lockup {
-  display: inline-block;
+  display: none;
   font-family: var(--serif);
   font-weight: 700;
   letter-spacing: 0.28em;
@@ -144,7 +150,7 @@ body {
 }
 .vit-lockup span { color: var(--accent); }
 .presents {
-  margin-top: 14px;
+  margin-top: 10px;
   font-size: 0.72rem;
   letter-spacing: 0.22em;
   font-weight: 700;
@@ -163,11 +169,12 @@ body {
 
 .title {
   font-family: var(--display);
-  font-size: clamp(3.2rem, 8vw, 4.6rem);
-  line-height: 0.92;
+  font-size: clamp(2.4rem, 6.2vw, 4.2rem);
+  line-height: 0.95;
   color: var(--ink);
   text-shadow: 2px 3px 0 color-mix(in srgb, var(--gold) 35%, transparent);
 }
+.title.long { font-size: clamp(2.1rem, 5.4vw, 3.35rem); max-width: 14ch; margin-inline: auto; }
 
 .slogan {
   margin: 12px auto 0;
@@ -189,6 +196,28 @@ body {
   font-size: 0.95rem;
   color: var(--muted);
 }
+.quotes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.quotes span {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 70%, white);
+  color: var(--ink);
+}
+.quotes b {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  margin-right: 6px;
+  color: var(--accent);
+}
 
 .logistics {
   list-style: none;
@@ -204,6 +233,7 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
+  line-height: 1.25;
 }
 .logistics i { display: block; font-style: normal; font-size: 1.1rem; margin-bottom: 4px; }
 .logistics b { display: block; font-size: 0.58rem; color: var(--muted); font-weight: 500; letter-spacing: 0.12em; }
@@ -232,7 +262,7 @@ body {
 .acts {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px 8px;
 }
 .acts li {
@@ -320,6 +350,7 @@ body {
 .theme-farewell { --paper:#EDE4D3; --ink:#3D2B1F; --accent:#9C6644; --gold:#C9A227; --banner:#5C3A2E; }
 .theme-hostel-day { --paper:#F6E7C1; --ink:#1F4D2A; --accent:#BC4749; --gold:#C9A227; --banner:#6A040F; }
 .theme-sports { --paper:#F4F1EA; --ink:#1B1B1B; --accent:#E63946; --gold:#F4A261; --banner:#1D3557; }
+.theme-old-school-arena { --paper:#F3E6C9; --ink:#1D2A44; --accent:#C44536; --gold:#D4A017; --banner:#6B2D12; }
 .theme-tech { --paper:#0B1220; --ink:#E2E8F0; --accent:#22D3EE; --gold:#A78BFA; --banner:#1E293B; }
 .theme-quiz { --paper:#F7F3E8; --ink:#24305E; --accent:#F76C6C; --gold:#F8E9A1; --banner:#374785; }
 .theme-music { --paper:#1A1025; --ink:#FDE2E4; --accent:#FF7AA2; --gold:#F9C74F; --banner:#6D2E46; }
@@ -341,6 +372,7 @@ body {
   .logistics { grid-template-columns: repeat(2, 1fr); }
   .badge { justify-self: center; }
   .acts { grid-template-columns: repeat(2, 1fr); }
+  .quotes span { font-size: 0.66rem; }
 }
 
 @media print {

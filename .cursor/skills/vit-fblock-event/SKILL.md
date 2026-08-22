@@ -28,7 +28,10 @@ Always use these unless the user overrides them:
 | Organizer credit | Organized by — {EVENT NAME} Core Team · F Block Hostel |
 | Entry | FREE ENTRY unless a fee is given |
 
-Do **not** paste unofficial VIT logo artwork. Use the text lockup **VIT CHENNAI**.
+Do **not** paste unofficial VIT logo artwork from random logo sites.
+Put the **VIT Chennai lockup** at the very top (`fblock-events/assets/vit-chennai-lockup.svg`).
+If the core team has the official campus PNG/SVG, replace that file and keep it
+centered above `F BLOCK HOSTEL PRESENTS`.
 
 ## Workflow
 
@@ -52,9 +55,9 @@ list the placeholders to confirm.
 
 Keep this section order. Do not flatten into a wall of text.
 
-1. **Header** — VIT CHENNAI lockup → floral rule → `F BLOCK HOSTEL PRESENTS`
-2. **Hero** — small motif (boat, lamp, kite, trophy, etc.) → brush event title
-   → slogan on an accent stroke → optional vernacular line
+1. **Header** — VIT Chennai logo → floral rule → `F BLOCK HOSTEL PRESENTS`
+2. **Hero** — motif → brush event title → slogan on an accent stroke →
+   **regional quotes** (Hindi / Tamil / Telugu / Malayalam / Kannada / Bengali / English)
 3. **Logistics row** — Date · Time · Location · Audience · Free/Paid badge
 4. **What's awaiting you** — 4–8 icon + label pairs
 5. **Surprise strip** — maroon (or type accent) banner with wink / tease
@@ -74,6 +77,20 @@ When generating a new event:
   asked to change the builder itself
 
 Keep generated HTML self-contained (inline CSS). Do not depend on a bundler.
+
+## Regional quotes
+
+When the user asks for different-language quotes, keep the main tagline and
+add one line per language as `CODE: quote`. Default mapping for
+“Khel wahi. Josh naya.”:
+
+- HI: खेल वही। जोश नया।
+- TA: அதே விளையாட்டு. புதிய உற்சாகம்.
+- TE: అదే ఆట. కొత్త జోష్.
+- ML: അതേ കളി. പുതിയ ജോഷ്.
+- KN: ಅದೇ ಆಟ. ಹೊಸ ಜೋಷ್.
+- BN: সেই খেলা। নতুন জোশ।
+- EN: Same games. New energy.
 
 ## Do / don't
 

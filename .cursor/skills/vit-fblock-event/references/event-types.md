@@ -27,7 +27,8 @@ user's list.
 
 | Key | Typical title pattern | Default slogan | Default activities |
 | --- | --- | --- | --- |
-| `sports` | F Block Sports Meet | Play Hard, Block Proud | Cricket, Football, Tug of War, Relays, Prizes |
+| `sports` | F Block Sports Meet | Play Hard, Block Proud | Cricket, Football, Tug-of-War, Relays, Prizes |
+| `old-school-arena` | The Old School Arena | Khel wahi. Josh naya. | Kho-Kho, Tug-of-War, Lagori (Pitthu), Lemon & Spoon Race, Sack Race, Three-Legged Race |
 | `tech` | Hack @ F / Code Night | Compile. Connect. Celebrate. | Mini-hack, Demos, Quiz, Pizza |
 | `quiz` | F Block Quiz Night | Know It All? Prove It. | Rounds, Buzzer, Audience poll, Prizes |
 | `music` | F Block Unplugged / DJ Night | From Corridor to Chorus | Open mic, Dance, DJ, Requests |

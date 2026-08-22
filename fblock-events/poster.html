@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>F Block Event Poster Builder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&family=Cormorant+Garamond:wght@600;700&family=Kaushan+Script&family=Noto+Sans+Malayalam:wght@500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&family=Cormorant+Garamond:wght@600;700&family=Kaushan+Script&family=Noto+Sans+Bengali:wght@500&family=Noto+Sans+Devanagari:wght@500&family=Noto+Sans+Kannada:wght@500&family=Noto+Sans+Malayalam:wght@500&family=Noto+Sans+Tamil:wght@500&family=Noto+Sans+Telugu:wght@500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="poster.css">
 </head>
 <body>
@@ -23,8 +23,8 @@
       <label for="slogan">Slogan</label>
       <input id="slogan" autocomplete="off">
 
-      <label for="vernacular">Vernacular / extra line</label>
-      <input id="vernacular" autocomplete="off">
+      <label for="vernacular">Regional quotes (one per line, Language: quote)</label>
+      <textarea id="vernacular"></textarea>
 
       <label for="date">Date</label>
       <input id="date" autocomplete="off">
@@ -62,14 +62,14 @@
     <main class="preview-wrap">
       <article class="poster theme-onam" id="poster">
         <header class="poster-header">
-          <div class="vit-lockup">VIT <span>CHENNAI</span></div>
+          <img class="vit-logo" src="assets/vit-chennai-lockup.svg" width="280" height="92" alt="VIT Chennai">
           <p class="presents"><span class="ornament">❀</span> F BLOCK HOSTEL PRESENTS <span class="ornament">❀</span></p>
         </header>
         <div class="hero">
           <div class="motif" aria-hidden="true"></div>
-          <h1 class="title" id="p-title">Onaverse</h1>
-          <p class="slogan"><span id="p-slogan">Where Tradition Meets Tomorrow</span></p>
-          <p class="vernacular" id="p-vernacular">ഓണാശംസകൾ — F Block Onam</p>
+          <h1 class="title" id="p-title">The Old School Arena</h1>
+          <p class="slogan"><span id="p-slogan">Khel wahi. Josh naya.</span></p>
+          <div class="quotes" id="p-quotes"></div>
         </div>
         <ul class="logistics">
           <li><i>📅</i><b>Date</b><span id="p-date">26 August</span></li>

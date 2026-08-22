@@ -1,4 +1,33 @@
 const PRESETS = {
+  "old-school-arena": {
+    title: "The Old School Arena",
+    slogan: "Khel wahi. Josh naya.",
+    vernacular: [
+      "HI: खेल वही। जोश नया।",
+      "TA: அதே விளையாட்டு. புதிய உற்சாகம்.",
+      "TE: అదే ఆట. కొత్త జోష్.",
+      "ML: അതേ കളി. പുതിയ ജോഷ്.",
+      "KN: ಅದೇ ಆಟ. ಹೊಸ ಜೋಷ್.",
+      "BN: সেই খেলা। নতুন জোশ।",
+      "EN: Same games. New energy."
+    ].join("\n"),
+    date: "26 August 2026",
+    time: "10:00 AM to 12:00 PM",
+    venue: "F Block Ground",
+    audience: "Open to All Boys Hostels",
+    entry: "FREE ENTRY",
+    activities: [
+      "🏃 Kho-Kho",
+      "🪢 Tug-of-War",
+      "🪨 Lagori (Pitthu)",
+      "🍋 Lemon & Spoon Race",
+      "🎒 Sack Race",
+      "👫 Three-Legged Race"
+    ],
+    surprise: "+ Some Special Surprises + WE'RE NOT TELLING YOU YET! 😉",
+    cta: "— Wear Your Old-School Best — SEE YOU THERE!",
+    organizer: "Organized by — The Old School Arena Core Team · F Block Hostel"
+  },
   onam: {
     title: "Onaverse",
     slogan: "Where Tradition Meets Tomorrow",
@@ -206,6 +235,7 @@ const PRESETS = {
 };
 
 const TYPE_LABELS = {
+  "old-school-arena": "The Old School Arena",
   onam: "Onam",
   diwali: "Diwali",
   holi: "Holi",
@@ -239,6 +269,24 @@ function parseActivities(text) {
   return text.split("\n").map((line) => line.trim()).filter(Boolean);
 }
 
+function renderQuotes(text) {
+  const wrap = document.getElementById("p-quotes");
+  wrap.innerHTML = "";
+  String(text || "").split("\n").map((line) => line.trim()).filter(Boolean).forEach((line) => {
+    const span = document.createElement("span");
+    const match = line.match(/^([^:]{1,12}):\s*(.+)$/);
+    if (match) {
+      const lang = document.createElement("b");
+      lang.textContent = match[1];
+      span.appendChild(lang);
+      span.appendChild(document.createTextNode(match[2]));
+    } else {
+      span.textContent = line;
+    }
+    wrap.appendChild(span);
+  });
+}
+
 function renderActivities(list) {
   actsEl.innerHTML = "";
   list.forEach((line) => {
@@ -267,8 +315,9 @@ function paint() {
   const type = typeEl.value;
   poster.className = "poster theme-" + type;
   document.getElementById("p-title").textContent = document.getElementById("title").value;
+  document.getElementById("p-title").classList.toggle("long", document.getElementById("title").value.length > 16);
   document.getElementById("p-slogan").textContent = document.getElementById("slogan").value;
-  document.getElementById("p-vernacular").textContent = document.getElementById("vernacular").value;
+  renderQuotes(document.getElementById("vernacular").value);
   document.getElementById("p-date").textContent = document.getElementById("date").value;
   document.getElementById("p-time").textContent = document.getElementById("time").value;
   document.getElementById("p-venue").textContent = document.getElementById("venue").value;
@@ -285,6 +334,7 @@ function whatsappCopy() {
   const text = [
     "F BLOCK HOSTEL PRESENTS",
     document.getElementById("title").value + "  |  " + document.getElementById("slogan").value,
+    document.getElementById("vernacular").value.replace(/\n/g, "  ·  "),
     "",
     "📅 " + document.getElementById("date").value,
     "🕖 " + document.getElementById("time").value,
@@ -312,4 +362,4 @@ activitiesEl.addEventListener("input", paint);
 document.getElementById("print-btn").addEventListener("click", () => window.print());
 document.getElementById("wa-btn").addEventListener("click", whatsappCopy);
 
-applyPreset("onam", true);
+applyPreset("old-school-arena", true);

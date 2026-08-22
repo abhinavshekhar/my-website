@@ -25,6 +25,7 @@ Open `fblock-events/poster.html`:
 3. **Print / PDF** (A4 portrait, enable background graphics).
 4. **Copy WhatsApp** for the hostel group caption.
 
-## Event types
+Filled example: `fblock-events/generated/the-old-school-arena.html`
 
-See `.cursor/skills/vit-fblock-event/references/event-types.md`.
+Event types include Onam, Diwali, Holi, Pongal, Eid, Christmas, Freshers,
+Farewell, Hostel Day, Sports, **The Old School Arena**, Tech, Quiz, Music, and generic.
