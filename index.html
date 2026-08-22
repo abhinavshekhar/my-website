@@ -585,6 +585,11 @@
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(to top, rgba(3,7,18,0.85), transparent 55%);
   }
+  .project-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.6s var(--ease);
+  }
+  .project-card:hover .project-thumb img { transform: scale(1.06); }
   .project-thumb-inner {
     position: absolute; inset: 0; display: grid; place-items: center;
     font-size: 3rem; opacity: 0.35;
@@ -779,7 +784,7 @@
       <div class="hero-profile reveal">
         <div class="hero-photo-wrap">
           <span class="hero-photo-ring" aria-hidden="true"></span>
-          <img class="hero-photo" src="assets/profile.jpg" alt="Abhinav Shekhar — first-year CSE student at VIT Chennai" width="92" height="92">
+          <img class="hero-photo" src="assets/gallery/portrait.jpg" alt="Abhinav Shekhar — first-year CSE student at VIT Chennai" width="92" height="92">
         </div>
         <div class="hero-profile-meta">
           <div class="hero-profile-name">Abhinav Shekhar</div>
@@ -892,7 +897,7 @@
     <div class="gallery-deck reveal">
       <div class="deck-stage" id="deck-stage">
         <article class="deck-card" data-index="0">
-          <img src="assets/profile.jpg" alt="Abhinav Shekhar portrait">
+          <img src="assets/gallery/portrait.jpg" alt="Abhinav Shekhar portrait at Kota riverfront">
           <div class="deck-card-body">
             <div class="deck-card-tag">Portrait</div>
             <div class="deck-card-title">Abhinav Shekhar</div>
@@ -900,23 +905,23 @@
           </div>
         </article>
         <article class="deck-card" data-index="1">
-          <div class="deck-card-visual">🏫</div>
+          <img src="assets/gallery/kota-balcony.jpg" alt="Kota riverfront with Chambal statue and bougainvillea">
           <div class="deck-card-body">
-            <div class="deck-card-tag">Campus</div>
-            <div class="deck-card-title">VIT Chennai</div>
-            <div class="deck-card-sub">Vandalur–Kelambakkam Road — labs, hostel blocks, and late-night build sessions.</div>
+            <div class="deck-card-tag">Travel</div>
+            <div class="deck-card-title">Kota Riverfront</div>
+            <div class="deck-card-sub">Chambal riverfront — statue, bridge, and the view before engineering life at VIT.</div>
           </div>
         </article>
         <article class="deck-card" data-index="2">
-          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(52,211,153,0.18),rgba(34,211,238,0.12));">🚌</div>
+          <img src="assets/gallery/dragon-statue.jpg" alt="Abhinav beside a metallic dragon statue">
           <div class="deck-card-body">
-            <div class="deck-card-tag">Hackathon</div>
-            <div class="deck-card-title">MTC Companion+</div>
-            <div class="deck-card-sub">Prompt War X Nexus — Chennai transit map with live bus simulation and crowd reports.</div>
+            <div class="deck-card-tag">Travel</div>
+            <div class="deck-card-title">Dragon Statue</div>
+            <div class="deck-card-sub">Waterfront terrace moments — exploring architecture and sculpture on the road.</div>
           </div>
         </article>
         <article class="deck-card" data-index="3">
-          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(244,114,182,0.16),rgba(167,139,250,0.12));">🚨</div>
+          <img src="assets/projects/marauders-crisis-map.jpg" alt="VIT Chennai campus emergency command center mockup">
           <div class="deck-card-body">
             <div class="deck-card-tag">Ideathon</div>
             <div class="deck-card-title">Marauder's Crisis Map</div>
@@ -924,18 +929,18 @@
           </div>
         </article>
         <article class="deck-card" data-index="4">
-          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(251,191,36,0.14),rgba(52,211,153,0.1));">🌾</div>
+          <img src="assets/projects/vaayu.jpg" alt="VAAYU Chennai smart transit civic dashboard">
           <div class="deck-card-body">
-            <div class="deck-card-tag">Internship</div>
-            <div class="deck-card-title">Suminter India</div>
-            <div class="deck-card-sub">Farmer registration portal and Android survey app across Chittorgarh, Pratapgarh & Neemuch.</div>
+            <div class="deck-card-tag">Hackathon</div>
+            <div class="deck-card-title">VAAYU · MTC Companion+</div>
+            <div class="deck-card-sub">Prompt War X Nexus — Chennai transit map with live bus simulation and civic intelligence.</div>
           </div>
         </article>
         <article class="deck-card" data-index="5">
-          <div class="deck-card-visual" style="background:linear-gradient(135deg,rgba(34,211,238,0.14),rgba(244,114,182,0.1));">🏠</div>
+          <img src="assets/gallery/kota-flowers.jpg" alt="Abhinav at Kota with pink bougainvillea">
           <div class="deck-card-body">
             <div class="deck-card-tag">Roots</div>
-            <div class="deck-card-title">Samastipur, Bihar</div>
+            <div class="deck-card-title">Samastipur → Chennai</div>
             <div class="deck-card-sub">Home base — DPS Class X (93.2%) to Holy Mission XII (83%) to engineering at VIT.</div>
           </div>
         </article>
@@ -1108,7 +1113,7 @@
     <div class="projects-grid" id="projects-grid">
       <article class="project-card featured reveal" data-category="web ai systems">
         <div class="project-thumb">
-          <div class="project-thumb-inner">🚨</div>
+          <img src="assets/projects/marauders-crisis-map.jpg" alt="Marauder's Crisis Map — VIT campus emergency command center">
           <span class="project-status status-live">Live on Vercel</span>
         </div>
         <div class="project-body">
@@ -1126,8 +1131,8 @@
       </article>
 
       <article class="project-card reveal reveal-delay-1" data-category="web systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(34,211,238,0.08));">
-          <div class="project-thumb-inner">🚌</div>
+        <div class="project-thumb">
+          <img src="assets/projects/vaayu.jpg" alt="MTC Companion+ Chennai transit map">
           <span class="project-status status-live">Live on Vercel</span>
         </div>
         <div class="project-body">
@@ -1145,8 +1150,8 @@
       </article>
 
       <article class="project-card reveal reveal-delay-2" data-category="web ai systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.14),rgba(167,139,250,0.1));">
-          <div class="project-thumb-inner">🌿</div>
+        <div class="project-thumb">
+          <img src="assets/projects/vaayu.jpg" alt="VAAYU Chennai Smart Transit civic dashboard">
           <span class="project-status status-live">GitHub</span>
         </div>
         <div class="project-body">
@@ -1163,8 +1168,8 @@
       </article>
 
       <article class="project-card reveal" data-category="ai web systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(34,211,238,0.1));">
-          <div class="project-thumb-inner">🧠</div>
+        <div class="project-thumb">
+          <img src="assets/projects/portfolio.jpg" alt="AstraOS student AI operating system concept">
           <span class="project-status status-build">GitHub</span>
         </div>
         <div class="project-body">
@@ -1181,8 +1186,8 @@
       </article>
 
       <article class="project-card reveal reveal-delay-1" data-category="web systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(251,191,36,0.1));">
-          <div class="project-thumb-inner">🌾</div>
+        <div class="project-thumb">
+          <img src="assets/projects/farmer-portal.jpg" alt="Farmer Registration Portal for Suminter India">
           <span class="project-status status-live">Live on Pages</span>
         </div>
         <div class="project-body">
@@ -1200,8 +1205,8 @@
       </article>
 
       <article class="project-card reveal reveal-delay-2" data-category="mobile systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.16),rgba(244,114,182,0.08));">
-          <div class="project-thumb-inner">📱</div>
+        <div class="project-thumb">
+          <img src="assets/projects/farmer-survey.jpg" alt="Farmer Survey App Android interface">
           <span class="project-status status-live">GitHub</span>
         </div>
         <div class="project-body">
@@ -1218,8 +1223,8 @@
       </article>
 
       <article class="project-card reveal" data-category="web systems">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(34,211,238,0.1),rgba(148,163,184,0.1));">
-          <div class="project-thumb-inner">📋</div>
+        <div class="project-thumb">
+          <img src="assets/projects/farmer-portal.jpg" alt="S-Data field data collection portal">
           <span class="project-status status-build">GitHub</span>
         </div>
         <div class="project-body">
@@ -1236,8 +1241,8 @@
       </article>
 
       <article class="project-card reveal reveal-delay-1" data-category="web">
-        <div class="project-thumb" style="background:linear-gradient(135deg,rgba(34,211,238,0.12),rgba(167,139,250,0.12));">
-          <div class="project-thumb-inner">✦</div>
+        <div class="project-thumb">
+          <img src="assets/projects/portfolio.jpg" alt="Personal portfolio site on monitor mockup">
           <span class="project-status status-live">Live on Vercel</span>
         </div>
         <div class="project-body">
