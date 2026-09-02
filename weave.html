@@ -74,7 +74,8 @@
     border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); user-select: none;
   }
   .node.selected { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
-  .node.locked { outline: 1px dashed rgba(244,63,94,0.35); }
+  .node.ingress { border-color: #38bdf8; }
+  .node.hash { border-color: #c084fc; }
   .node.sigil { outline: 1px dashed rgba(34,211,238,0.35); }
   .node-head { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px 4px; font-size: 11px; font-weight: 700; }
   .node-body { padding: 0 10px 10px; font-size: 10px; color: var(--muted); }
@@ -242,7 +243,7 @@
       <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
     </div>
     <footer>
-      <span class="hint">Hint: gw1 only forwards checksum 0x007F. Put Hash Mutator (xorSalt 0x5A) BEFORE the gateway, then OUT → Sigil. Unsigned frames auto-purge.</span>
+      <span class="hint">Hint: click Hash Mutator, set xorSalt to 0x5A, then Play. gw1 only forwards checksum 0x007F.</span>
       <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
     </footer>
   </div>
@@ -278,8 +279,11 @@ const PALETTE = [
     { type: "delay", name: "Delay Buffer", desc: "Delay: 500ms", color: "#94a3b8" }
   ]},
   { group: "CONTROL FLOW", items: [
-    { type: "merge", name: "Stream Merge", desc: "Joins two inputs", color: "#38bdf8" },
-    { type: "fork", name: "Packet Fork", desc: "Duplicates stream", color: "#a78bfa" }
+    { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" },
+    { type: "errors", name: "Error Handler", desc: "Error: allErrors", color: "#f43f5e" }
+  ]},
+  { group: "SECURITY & SINKS", items: [
+    { type: "gateway", name: "SYS_SEC_GATEWAY", desc: "Security: RESTRICTED", color: "#fb7185" }
   ]}
 ];
 
@@ -346,7 +350,11 @@ function defaultConfig(type) {
 
 function portsFor(type) {
   if (type === "ingress") return { in: [], out: [{ id: "out", color: "cyan" }] };
-  if (type === "incinerator" || type === "sigil") return { in: [{ id: "in", color: "cyan" }], out: [] };
+  if (type === "incinerator" || type === "sigil" || type === "errors") return { in: [{ id: "in", color: "cyan" }], out: [] };
+  if (type === "join" || type === "merge") return {
+    in: [{ id: "in", color: "cyan" }, { id: "in2", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }]
+  };
   if (type === "filter") return {
     in: [{ id: "in", color: "cyan" }],
     out: [{ id: "pass", color: "green" }, { id: "fail", color: "red" }]
@@ -410,7 +418,7 @@ function resetRound() {
   });
   addNode({
     id: "burn", type: "incinerator", title: "Incinerator (Purge)",
-    subtitle: "Incinerates Packets", x: 310, y: 250, locked: true
+    subtitle: "Incinerates Packets", x: 310, y: 250, locked: false
   });
   wires.push({ from: "ingress", fromPort: "out", to: "gw1", toPort: "in" });
   selected = "gw1";
@@ -466,7 +474,7 @@ function portEls(node) {
 function nodeEl(node) {
   const p = portEls(node);
   const div = document.createElement("div");
-  div.className = "node" + (selected === node.id ? " selected" : "") + (node.locked && node.type === "gateway" ? " locked" : "") + (node.type === "sigil" ? " sigil" : "");
+  div.className = "node " + node.type + (selected === node.id ? " selected" : "") + (node.locked && node.type === "gateway" ? " locked" : "") + (node.type === "sigil" ? " sigil" : "");
   div.style.left = node.x + "px";
   div.style.top = node.y + "px";
   div.dataset.id = node.id;
@@ -535,7 +543,7 @@ function showInspector(node) {
   }
   if (node.type === "hash") {
     fields += `<div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x00"}"></div>
-      <p class="hint">Lunar glyph: payload XOR 0x5A = 0x7F. Place this mutator UPSTREAM of SYS_SEC_GATEWAY or every frame gets incinerated.</p>`;
+      <p class="hint">Packets stay here until xorSalt is set. Use 0x5A so lunar frames become checksum 0x7F, then Play again.</p>`;
   }
   if (node.type === "transform") {
     fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>`;
@@ -691,7 +699,25 @@ function step() {
 
     if (s.type === "hash") {
       const salt = parseHex(s.cfg.xorSalt, 0);
+      if (!salt) {
+        node.buffer.push(...pkts);
+        log("diag", `${node.title} holding ${pkts.length} frame(s) — set xorSalt (try 0x5A) then Play.`);
+        return;
+      }
       pkts = pkts.map(p => ({ ...p, payload: p.payload ^ salt, xorApplied: salt === XOR_SALT }));
+    }
+
+    if (s.type === "join" || s.type === "merge") {
+      const next = outs(s.id, "out");
+      if (pkts.length && next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+      else node.buffer.push(...pkts);
+      return;
+    }
+
+    if (s.type === "errors") {
+      node.buffer.push(...pkts);
+      log("err", `${node.title} captured ${pkts.length} error frame(s).`);
+      return;
     }
 
     if (s.type === "fork") {
@@ -817,6 +843,17 @@ document.querySelectorAll("[data-close]").forEach(btn => {
   btn.addEventListener("click", () => document.getElementById(btn.dataset.close).classList.add("hidden"));
 });
 document.getElementById("win-close").addEventListener("click", () => document.getElementById("win").classList.remove("show"));
+window.addEventListener("keydown", e => {
+  if (e.key !== "Delete" && e.key !== "Backspace") return;
+  const node = nodes.find(n => n.id === selected);
+  if (!node || node.locked) return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+  wires = wires.filter(w => w.from !== node.id && w.to !== node.id);
+  nodes = nodes.filter(n => n.id !== node.id);
+  log("sys", `${node.title} purged and wires severed.`);
+  selected = null;
+  renderAll();
+});
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
