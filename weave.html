@@ -26,7 +26,13 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overflow: hidden; }
   button { font-family: inherit; cursor: pointer; }
-  #app { display: grid; grid-template-rows: 52px 1fr 148px; height: 100%; }
+  #app { display: grid; grid-template-rows: 52px auto 1fr 148px; height: 100%; }
+  .obj-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 8px 14px; border-bottom: 1px solid var(--line); background: #0c1018;
+    font-size: 11px; color: var(--muted);
+  }
+  .obj-bar strong { color: var(--amber); font-size: 12px; }
 
   .topbar {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -183,7 +189,11 @@
       <a class="btn btn-icon" href="index.html" title="Exit">✕</a>
     </div>
   </header>
-
+  <div class="obj-bar">
+    <span class="chip">STEP 07</span>
+    <strong>Victory Objective: Sigil Synthesis</strong>
+    <span>Route valid harmonic fragments (<code>freq % 313 == 0</code>, clean signatures, entropy &lt; 0.80, inverted mask 0x007F) into the Sigil Forge. Purge decoys to forge [SIGIL I - LUNAR].</span>
+  </div>
   <div class="workspace">
     <aside class="palette" id="palette"></aside>
     <div id="canvas-wrap">
@@ -340,16 +350,20 @@ function makePackets() {
     const header = !decoy && idx % 2 === 0;
     const role = decoy ? "DECOY" : (header ? "HEADER" : "BODY");
     const pair = decoy ? 0 : Math.floor(idx / 2) + 1;
+    let freq = decoy ? 241 + (i % 19) : (header ? 313 : 626);
+    if (decoy && freq % 313 === 0) freq += 11;
     list.push({
       id: i,
       hexId: decoy
         ? ("0x" + i.toString(16).toUpperCase().padStart(4, "0"))
         : ("0x0313_" + String(header ? pair * 2 - 1 : pair * 2).padStart(2, "0")),
-      freq: decoy ? 240 + (i % 17) : (header ? 313 : 626),
+      freq,
       value: role,
       payload: (i * 17 + 9) & 0xff,
+      mask: 0x80,
       entropy: decoy ? 0.80 + (i % 20) / 100 : 0.18 + (idx % 12) / 50,
       status: decoy ? "DECOY" : "CLEAN",
+      signature: decoy ? "TAINT" : "CLEAN",
       decoy,
       malicious: false,
       fused: false,
@@ -654,7 +668,7 @@ function showInspector(node) {
       <h3>NODE CONFIGURATION</h3>
       <p class="hint">${node.title} · Integrity gate // breach 03:13</p>
       <div class="enc-box"><div class="k">RESONANT PASS RULE</div>
-        <p>freq ∈ {313Hz, 626Hz} (timestamp 03:13 and 2nd harmonic)<br>AND entropy &lt; 0.80</p></div>
+        <p><code>freq % 313 == 0</code> (313Hz, 626Hz, …)<br>clean signature AND entropy &lt; 0.80. Hash inverts mask to 0x007F.</p></div>
       <div class="field"><label>Field</label>
         <select data-k="field"><option value="entropy">entropy</option><option value="freq">freq</option></select></div>
       <div class="field"><label>Operator</label>
@@ -833,7 +847,11 @@ function matches(pkt, cfg) {
 }
 
 function integrityPass(pkt) {
-  return (pkt.freq === 313 || pkt.freq === 626) && Number(pkt.entropy) < 0.80;
+  return pkt.freq % 313 === 0 && pkt.signature === "CLEAN" && Number(pkt.entropy) < 0.80 && !pkt.decoy;
+}
+
+function isLunarFrag(p) {
+  return p.freq % 313 === 0 && p.signature === "CLEAN" && Number(p.entropy) < 0.80 && !p.decoy && (p.mask === SIGIL_BYTE || p.payload === SIGIL_BYTE);
 }
 
 function condMatch(pkt, cond) {
@@ -913,7 +931,9 @@ function step() {
       }
       pkts = pkts.map(p => ({
         ...p,
-        payload: algo === "crc16" ? SIGIL_BYTE : (p.payload ^ salt),
+        payload: SIGIL_BYTE,
+        mask: SIGIL_BYTE,
+        invertedMask: true,
         xorApplied: true,
         outputTarget: s.cfg.outputTarget || "sessionToken",
         saltOk
@@ -941,6 +961,7 @@ function step() {
           delayedMs: Math.max(headers[i].delayedMs || 0, bodies[i].delayedMs || 0),
           latencyMs: Math.max(headers[i].latencyMs || 0, bodies[i].latencyMs || 0),
           payload: SIGIL_BYTE,
+          mask: SIGIL_BYTE,
           outputTarget: headers[i].outputTarget || bodies[i].outputTarget,
           saltOk: headers[i].saltOk && bodies[i].saltOk
         });
@@ -1059,23 +1080,19 @@ function step() {
 
 function evaluate(sigil) {
   if (won || !sigil.buffer.length) return;
-  const decoys = sigil.buffer.filter(p => p.decoy);
-  const incomplete = sigil.buffer.filter(p => !p.decoy && !p.aligned);
-  if (incomplete.length) {
-    log("err", `PAYLOAD_INCOMPLETE: Sigil Forge rejected ${incomplete.length} raw sub-frame(s). HEADER and BODY sub-frames must be split, phase-aligned (700ms delay), and reunified via Stream Join.`);
+  const good = sigil.buffer.filter(isLunarFrag);
+  const junk = sigil.buffer.filter(p => !isLunarFrag(p));
+  if (junk.length) {
+    log("err", `Sigil Forge rejected ${junk.length} invalid fragment(s). Need freq % 313 == 0, clean signature, entropy < 0.80, inverted mask 0x007F.`);
   }
-  if (decoys.length) {
-    log("err", `HARMONIC_COLLAPSE: Sigil Forge rejected ${decoys.length} tainted decoy frame(s). Ensure high-entropy decoys are filtered at ingress.`);
-  }
-  const good = sigil.buffer.filter(p => !p.decoy && !p.malicious && p.aligned && (p.delayedMs || 0) >= 700 && p.payload === SIGIL_BYTE && p.outputTarget === "sessionToken" && p.saltOk);
-  const need = makePackets().filter(p => p.role === "HEADER").length;
-  if (good.length >= need && !decoys.length && !incomplete.length) {
+  const need = makePackets().filter(p => p.freq % 313 === 0 && p.signature === "CLEAN").length;
+  if (!junk.length && good.length >= Math.min(12, need / 2) && good.every(p => p.mask === SIGIL_BYTE || p.payload === SIGIL_BYTE)) {
     won = true;
     pts += 250;
     document.getElementById("win-detail").textContent =
-      `${good.length} HEADER/BODY pairs phase-aligned. Checksum 0x007F. SIGIL I — LUNAR synthesized.`;
+      `[SIGIL I - LUNAR] forged from ${good.length} harmonic fragments. Mask 0x007F. Advance to Round 2.`;
     document.getElementById("win").classList.add("show");
-    log("ok", "SIGIL I — LUNAR synthesized. Checksum 0x007F accepted.");
+    log("ok", "SIGIL I — LUNAR synthesized. Victory objective complete. Round 2 unlocked.");
   }
 }
 
