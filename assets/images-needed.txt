@@ -1,18 +1,17 @@
-Save your photos here with these exact filenames:
+Image assets are now committed and wired in index.html.
 
-Gallery (personal photos):
-  gallery/portrait.jpg       — blue shirt portrait by the water (profile photo)
-  gallery/kota-balcony.jpg   — balcony with pink bougainvillea & riverfront
-  gallery/dragon-statue.jpg  — photo with the metallic dragon statue
-  gallery/kota-flowers.jpg   — arms crossed with pink flowers at riverfront
+Gallery (assets/gallery/):
+  portrait.jpg       — GitHub profile photo (replace with your Kota riverfront portrait)
+  kota-balcony.jpg   — stock riverfront placeholder (replace with your balcony photo)
+  dragon-statue.jpg  — stock dragon sculpture (replace with your dragon statue photo)
+  kota-flowers.jpg   — stock flowers (replace with your bougainvillea photo)
 
-Projects (mockup screenshots):
-  projects/marauders-crisis-map.jpg  — VIT emergency command center
-  projects/vaayu.jpg                 — VAAYU / Chennai transit dashboard
-  projects/farmer-survey.jpg         — Farmer Survey App infographic
-  projects/farmer-portal.jpg         — Farmer Registration Portal infographic
-  projects/portfolio.jpg             — portfolio monitor mockup
+Projects (assets/projects/):
+  marauders-crisis-map.jpg  — live site screenshot
+  mtc-companion.jpg         — MTC Companion+ live site screenshot
+  vaayu.jpg                 — VAAYU GitHub repo screenshot
+  farmer-portal.jpg         — Farmer Registration Portal live site screenshot
+  farmer-survey.jpg         — Farmer Survey App GitHub repo screenshot
+  portfolio.jpg             — portfolio site screenshot
 
-Optional extras (not yet wired in HTML):
-  gallery/kota-riverfront.jpg
-  gallery/kota-panorama.jpg
+To use your own photos: drop files with the same names into assets/gallery/ or assets/projects/, then commit and push.
