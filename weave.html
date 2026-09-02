@@ -45,7 +45,7 @@
   }
   .btn:hover { border-color: var(--cyan); color: var(--cyan); }
   .btn-cyan { border-color: rgba(34,211,238,0.45); color: var(--cyan); }
-  .btn-play { width: 36px; height: 36px; border-radius: 50%; background: #0f3; color: #04120a; border: 0; font-size: 14px; }
+  .btn-play { width: 36px; height: 36px; border-radius: 50%; background: #22d3ee; color: #041016; border: 0; font-size: 14px; }
   .btn-icon { width: 34px; height: 34px; border-radius: 8px; }
   .pts { color: var(--amber); font-weight: 700; font-size: 12px; padding: 0 6px; }
 
@@ -242,7 +242,7 @@
       <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
     </div>
     <footer>
-      <span class="hint">Hint: gw1 is read-only. Wire OUT → Hash Mutator (xorSalt 0x5A) → Sigil Forge. Wire ERROR → Incinerator.</span>
+      <span class="hint">Hint: gw1 only forwards checksum 0x007F. Put Hash Mutator (xorSalt 0x5A) BEFORE the gateway, then OUT → Sigil. Unsigned frames auto-purge.</span>
       <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
     </footer>
   </div>
@@ -292,6 +292,7 @@ let pts = 0;
 let tick = 0;
 let won = false;
 let uid = 1;
+let typeCounts = {};
 let logMode = "logs";
 
 const canvas = document.getElementById("canvas-wrap");
@@ -317,7 +318,8 @@ function makePackets() {
   const list = [];
   for (let i = 0; i < PACKET_N; i++) {
     const lunar = i % 6 === 0;
-    const payload = lunar ? (SIGIL_BYTE ^ XOR_SALT) : ((i * 17 + 9) & 0xff);
+    let payload = lunar ? (SIGIL_BYTE ^ XOR_SALT) : ((i * 17 + 9) & 0xff);
+    if (!lunar && ((payload ^ XOR_SALT) === SIGIL_BYTE || payload === SIGIL_BYTE)) payload ^= 1;
     list.push({
       id: i,
       freq: lunar ? LUNAR_FREQ : (40 + (i * 13) % 200),
@@ -338,7 +340,7 @@ function defaultConfig(type) {
   if (type === "transform") return { mask: "0xFF" };
   if (type === "hash") return { xorSalt: "0x00" };
   if (type === "delay") return { ms: 500 };
-  if (type === "gateway") return { field: "freq", op: "eq", value: String(LUNAR_FREQ) };
+  if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
   return {};
 }
 
@@ -392,6 +394,7 @@ function resetRound() {
   won = false;
   tick = 0;
   uid = 1;
+  typeCounts = { ingress: 1, hash: 0 };
   addNode({
     id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
     subtitle: "Telemetry source", x: 36, y: 88, locked: true,
@@ -444,9 +447,10 @@ canvas.addEventListener("drop", e => {
   if (!type) return;
   const rect = canvas.getBoundingClientRect();
   const spec = PALETTE.flatMap(g => g.items).find(i => i.type === type);
+  typeCounts[type] = (typeCounts[type] || 0) + 1;
   addNode({
     type,
-    title: spec.name.toUpperCase().replace(/ /g, "_"),
+    title: spec.name + " " + typeCounts[type],
     subtitle: spec.desc,
     x: e.clientX - rect.left - 90,
     y: e.clientY - rect.top - 20
@@ -531,7 +535,7 @@ function showInspector(node) {
   }
   if (node.type === "hash") {
     fields += `<div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x00"}"></div>
-      <p class="hint">Lunar glyph lock opens when payload XOR salt equals 0x7F. Try 0x5A.</p>`;
+      <p class="hint">Lunar glyph: payload XOR 0x5A = 0x7F. Place this mutator UPSTREAM of SYS_SEC_GATEWAY or every frame gets incinerated.</p>`;
   }
   if (node.type === "transform") {
     fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>`;
@@ -723,8 +727,16 @@ function step() {
       outW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
       errW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
       if (!outW.length) node.buffer.push(...pass);
-      if (!errW.length) node.buffer.push(...fail);
-      log("pipe", `gw1 KERNEL_EXCEPTION_TRAP_MODE · OUT ${pass.length} · ERROR ${fail.length}`);
+      if (!errW.length && fail.length) {
+        const burn = nodes.find(n => n.type === "incinerator");
+        if (burn) {
+          burn.buffer.push(...fail.map(p => ({ ...p })));
+          log("err", `KERNEL trap purged ${fail.length} unsigned frame(s) into Incinerator (no ERROR wire).`);
+        } else node.buffer.push(...fail);
+      } else if (!errW.length) {
+        node.buffer.push(...fail);
+      }
+      log("pipe", `gw1 KERNEL_EXCEPTION_TRAP_MODE · checksum 0x007F · OUT ${pass.length} · ERROR ${fail.length}`);
       return;
     }
 
@@ -785,9 +797,7 @@ function evaluate(sigil) {
 
 document.getElementById("btn-play").addEventListener("click", step);
 document.getElementById("btn-reload").addEventListener("click", () => {
-  const ing = nodes.find(n => n.type === "ingress");
-  ing.buffer = makePackets();
-  nodes.forEach(n => { if (n.type !== "ingress") n.buffer = []; });
+  nodes.forEach(n => { n.buffer = n.type === "ingress" ? makePackets() : []; });
   won = false;
   log("in", "ARK_INGRESS_01 dispatched 200 telemetry frame(s) into pipeline.");
   renderAll();
