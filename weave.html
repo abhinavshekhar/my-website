@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Weave — Round 01 // Sigil I Lunar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080d;
+    --panel: #0e1118;
+    --panel-2: #141824;
+    --line: rgba(56, 189, 248, 0.16);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.12);
+    --green: #4ade80;
+    --red: #f43f5e;
+    --violet: #c084fc;
+    --amber: #fbbf24;
+    --text: #e8eef7;
+    --muted: #8b95a8;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --display: Syne, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overflow: hidden; }
+  button { font-family: inherit; cursor: pointer; }
+  #app { display: grid; grid-template-rows: 52px auto 1fr 148px; height: 100%; }
+  .obj-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 8px 14px; border-bottom: 1px solid var(--line); background: #0c1018;
+    font-size: 11px; color: var(--muted);
+  }
+  .obj-bar strong { color: var(--amber); font-size: 12px; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0 14px; border-bottom: 1px solid var(--line); background: #0b0e14;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand h1 { font-family: var(--display); font-size: 18px; letter-spacing: 0.04em; }
+  .chip {
+    border: 1px solid var(--line); background: var(--cyan-dim); color: var(--cyan);
+    padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  }
+  .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    padding: 7px 11px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  }
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn-cyan { border-color: rgba(34,211,238,0.45); color: var(--cyan); }
+  .btn-play { width: 36px; height: 36px; border-radius: 50%; background: #22d3ee; color: #041016; border: 0; }
+  .btn-play svg { display: block; }
+  .btn-icon { width: 34px; height: 34px; border-radius: 8px; }
+  .pts { color: var(--amber); font-weight: 700; font-size: 12px; padding: 0 6px; }
+
+  .workspace { display: grid; grid-template-columns: 250px 1fr 310px; min-height: 0; }
+  .palette, .inspector {
+    background: var(--panel); border-right: 1px solid var(--line); overflow: auto; padding: 12px;
+  }
+  .inspector { border-right: 0; border-left: 1px solid var(--line); }
+  .pal-kicker { font-size: 10px; letter-spacing: 0.14em; color: var(--muted); margin: 12px 0 8px; }
+  .pal-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 6px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); cursor: grab;
+  }
+  .pal-item:active { cursor: grabbing; }
+  .pal-item small { display: block; color: var(--muted); font-size: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  #canvas-wrap { position: relative; min-width: 0; overflow: auto; background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
+    #080a10;
+  }
+  #wires { position: absolute; top: 0; left: 0; z-index: 1; overflow: visible; pointer-events: none; }
+  .node { z-index: 2; }
+  .btn-play, .btn-run-icon { display: inline-flex; align-items: center; justify-content: center; }
+  .node {
+    position: absolute; width: 210px; background: #12151e; border: 1px solid #2a3344;
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); user-select: none;
+  }
+  .node.selected { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
+  .node.ingress { border-color: #38bdf8; }
+  .node.hash { border-color: #c084fc; }
+  .node.sigil { outline: 1px dashed rgba(34,211,238,0.35); }
+  .node-head { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px 4px; font-size: 11px; font-weight: 700; }
+  .node-body { padding: 0 10px 10px; font-size: 10px; color: var(--muted); }
+  .node-meta { margin-top: 6px; color: var(--cyan); }
+  .ports-in, .ports-out { position: absolute; top: 28px; display: flex; flex-direction: column; gap: 14px; }
+  .ports-in { left: -7px; } .ports-out { right: -7px; }
+  .port {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid #041016; pointer-events: auto;
+    cursor: crosshair;
+  }
+  .port.cyan { background: var(--cyan); }
+  .port.green { background: var(--green); }
+  .port.red { background: var(--red); }
+  .port.violet { background: var(--violet); }
+
+  .inspector h3 { font-size: 12px; margin-bottom: 10px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; background: #0b0e14; border: 1px solid var(--line); color: var(--text);
+    padding: 7px 8px; border-radius: 6px; font-family: inherit; font-size: 12px;
+  }
+  .hint { font-size: 10px; color: var(--muted); line-height: 1.45; }
+  .lock-banner { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .lock-tag { color: #fb7185; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+  .enc-box { border: 1px solid rgba(244,63,94,0.35); background: #140b10; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+  .enc-box .k { font-size: 9px; color: #fb7185; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .enc-box p { font-size: 10px; color: #d6dbe6; line-height: 1.4; }
+  .hex { font-size: 9px; color: #7dd3fc; line-height: 1.5; word-break: break-all; }
+  .wire-row { display: flex; justify-content: space-between; font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .pkt { font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .pkt b { color: var(--cyan); }
+  .ok-tag { color: #4ade80; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .l-pipe { color: #67e8f9; }
+
+  .bottom {
+    border-top: 1px solid var(--line); background: #0b0e14; display: flex; flex-direction: column; min-height: 0;
+  }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); }
+  .tab { padding: 8px 14px; background: none; border: 0; color: var(--muted); font-size: 11px; }
+  .tab.active { color: var(--cyan); border-bottom: 2px solid var(--cyan); }
+  #log { flex: 1; overflow: auto; padding: 8px 14px; font-size: 11px; line-height: 1.55; }
+  .l-in { color: var(--cyan); } .l-sys { color: #9aa7be; } .l-warn { color: var(--amber); }
+  .l-ok { color: var(--green); } .l-err { color: var(--red); } .l-diag { color: #eab308; }
+
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 20px;
+  }
+  .modal-back.hidden { display: none; }
+  .modal {
+    width: min(720px, 100%); background: #0e121a; border: 1px solid var(--cyan); border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .modal header { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 18px 8px; }
+  .modal header .sub { color: var(--cyan); font-size: 11px; margin-top: 4px; }
+  .modal .close { background: none; border: 0; color: var(--muted); font-size: 18px; }
+  .modal .body { padding: 8px 18px 18px; }
+  .brief-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+  .badge { border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; font-size: 10px; }
+  .badge.obj { border-color: var(--cyan); color: var(--cyan); }
+  .story { color: #c9d3e3; font-size: 13px; line-height: 1.6; }
+  .story em { color: var(--cyan); font-style: normal; }
+  .steps { display: grid; gap: 8px; }
+  .step { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .step b { display: block; margin-bottom: 4px; font-size: 12px; }
+  .step p { color: var(--muted); font-size: 11px; line-height: 1.45; }
+  .modal footer { display: flex; justify-content: space-between; align-items: center; padding: 0 18px 16px; }
+  .win {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.75); z-index: 60;
+  }
+  .win.show { display: flex; }
+  .win-card { text-align: center; padding: 28px; border: 1px solid var(--cyan); border-radius: 16px; background: #0c1118; }
+  .win-card h2 { font-family: var(--display); margin-bottom: 8px; }
+  @media (max-width: 980px) {
+    .workspace { grid-template-columns: 1fr; }
+    .palette, .inspector { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>The Weave</h1>
+      <span class="chip" id="profile-chip">Bazinga</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btn-reload">Reload 200 Pkts</button>
+      <span class="pts" id="pts">0 PTS</span>
+      <button class="btn" id="btn-reset">Reset Round 1</button>
+      <button class="btn btn-icon" id="btn-help" title="Directive">⚙</button>
+      <button class="btn btn-cyan btn-run-icon" id="btn-run" title="Run pipeline">
+        Run
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 1.5v11L12 7z" fill="currentColor"/><path d="M8 1.5v11L13 7z" fill="currentColor"/></svg>
+      </button>
+      <button class="btn-play" id="btn-play" title="Step execution" aria-label="Play">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.8v10.4L12.2 7z" fill="currentColor"/></svg>
+      </button>
+      <a class="btn btn-icon" href="index.html" title="Exit">✕</a>
+    </div>
+  </header>
+  <div class="obj-bar">
+    <span class="chip">STEP 07</span>
+    <strong>Victory Objective: Sigil Synthesis</strong>
+    <span>Route valid harmonic fragments (<code>freq % 313 == 0</code>, clean signatures, entropy &lt; 0.80, inverted mask 0x007F) into the Sigil Forge. Purge decoys to forge [SIGIL I - LUNAR].</span>
+  </div>
+  <div class="workspace">
+    <aside class="palette" id="palette"></aside>
+    <div id="canvas-wrap">
+      <svg id="wires"></svg>
+    </div>
+    <aside class="inspector" id="inspector">
+      <h3>NODE CONFIG</h3>
+      <p class="hint">Click a node to configure filter keys, XOR salt, branch rules, sort order, or delay.</p>
+    </aside>
+  </div>
+
+  <div class="bottom">
+    <div class="tabs">
+      <button class="tab active" data-tab="logs">Logs</button>
+      <button class="tab" data-tab="tele">Telemetry</button>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="brief-modal">
+  <div class="modal">
+    <header>
+      <div>
+        <strong>CLASSIFIED DIRECTIVE // SECTOR 01 // PERIMETER_SUBNET</strong>
+        <div class="sub">TRANSMISSION DECRYPTED • LIVE DOSSIER</div>
+      </div>
+      <button class="close" data-close="brief-modal">✕</button>
+    </header>
+    <div class="body">
+      <div class="brief-row">
+        <span class="badge">ROUND 01</span>
+        <strong style="font-family:var(--display);font-size:22px">The Weave</strong>
+        <span class="badge">CLEARANCE: LEVEL-1 INGRESS // BREACH PROTOCOL</span>
+        <span class="badge obj">OBJECTIVE: SYNTHESIZE [SIGIL I - LUNAR]</span>
+      </div>
+      <div class="story">
+        ARCHIVE_DECRYPTION_STREAM // LOG_01<br><br>
+        You have breached the outermost boundary of the <em>ARK</em>, humanity’s vast digital sanctuary.
+        Before you lies <em>The Weave</em>, a fractured processing network of severed threads, abandoned commands,
+        and corrupted pathways. <em>AEON</em>’s emergency <em>Survival Mode</em> has locked down the system,
+        and your objective is to navigate the broken network and locate the first <em>Sigil</em>.
+        Trust nothing you see, as not every open route leads where it claims. Reconstruct the path before the
+        <em>ARK</em> permanently isolates itself forever.
+      </div>
+    </div>
+    <footer>
+      <span class="sub">DECRYPTION COMPLETE // READY</span>
+      <button class="btn btn-cyan" id="init-protocol">▶ INITIALIZE PROTOCOL</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="how-modal">
+  <div class="modal">
+    <header>
+      <div>
+        <strong>ROUND 1: THE WEAVE // DIRECTIVE</strong>
+        <div class="sub">Pipeline Construction &amp; Execution Instructions</div>
+      </div>
+      <button class="close" data-close="how-modal">✕</button>
+    </header>
+    <div class="body steps">
+      <div class="step"><b>01 — Drag &amp; Drop Node Blocks</b><p>Drag Sources, Filters, Branches, Transformers, Sorters, Delays from the left palette onto the canvas.</p></div>
+      <div class="step"><b>02 — Connect &amp; Wire Ports</b><p>Drag from an output pin (right) to an input pin (left). Double-click a pin to sever its wires.</p></div>
+      <div class="step"><b>03 — Configure Node Logic</b><p>Click a node to open the right sidebar. Set freq filters, XOR salt <code>0x5A</code>, mask, branch keys, or delay.</p></div>
+      <div class="step"><b>04 — Step Execution (Play ▶)</b><p>Each click advances active buffered packets forward by exactly one node along wired connections.</p></div>
+      <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
+    </div>
+    <footer>
+      <span class="hint">Filter entropy &lt; 80. Hash salt 0x0313, output sessionToken. Branch HEADER vs BODY, delay HEADER to 700ms, Stream Join into the sigil.</span>
+      <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
+    </footer>
+  </div>
+</div>
+
+<div class="win" id="win">
+  <div class="win-card">
+    <div class="sub">SIGIL I — LUNAR</div>
+    <h2>SYNTHESIS COMPLETE</h2>
+    <p id="win-detail" class="hint"></p>
+    <button class="btn btn-cyan" id="win-close" style="margin-top:14px">Continue</button>
+  </div>
+</div>
+
+<script>
+const XOR_SALT = 0x5A;
+const LUNAR_FREQ = 137;
+const SIGIL_BYTE = 0x7F;
+const PACKET_N = 200;
+
+const PALETTE = [
+  { group: "TRIGGERS / SOURCES", items: [
+    { type: "ingress", name: "ARK Ingress", desc: "Emits Packets", color: "#22d3ee" }
+  ]},
+  { group: "LOGIC & ROUTING", items: [
+    { type: "filter", name: "Integrity Filter", desc: "Filter: entropy < 0.80", color: "#4ade80" },
+    { type: "branch", name: "Conditional Branch", desc: "Branch: valueMatch", color: "#c084fc" },
+    { type: "sorter", name: "Sequence Sorter", desc: "Sorts: nodeId", color: "#22d3ee" },
+    { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" }
+  ]},
+  { group: "DATA PROCESSING", items: [
+    { type: "transform", name: "Byte Transformer", desc: "Transform: mask", color: "#f472b6" },
+    { type: "hash", name: "Hash Mutator", desc: "Mutate: xorSalt", color: "#fbbf24" },
+    { type: "delay", name: "Delay Buffer", desc: "Delay: 700ms", color: "#94a3b8" }
+  ]},
+  { group: "CONTROL FLOW", items: [
+    { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" },
+    { type: "errors", name: "Error Handler", desc: "Error: allErrors", color: "#f43f5e" }
+  ]},
+  { group: "SECURITY & SINKS", items: [
+    { type: "gateway", name: "SYS_SEC_GATEWAY", desc: "Security: RESTRICTED", color: "#fb7185" }
+  ]}
+];
+
+let nodes = [];
+let wires = [];
+let selected = null;
+let connecting = null;
+let drag = null;
+let pts = 0;
+let tick = 0;
+let won = false;
+let uid = 1;
+let typeCounts = {};
+let logMode = "logs";
+
+const canvas = document.getElementById("canvas-wrap");
+const svg = document.getElementById("wires");
+const logEl = document.getElementById("log");
+const inspector = document.getElementById("inspector");
+
+function nid() { return "n" + (uid++); }
+
+function log(kind, msg) {
+  const now = new Date();
+  const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
+  const tags = {
+    pipe: "PIPELINE", in: "INGRESS", hash: "HASH_MUTATOR", gw: "SYS_SEC_GATEWAY",
+    err: "ERR", diag: "DIAGNOSTIC", warn: "WARNING", sys: "SYSTEM", ok: "OK", filter: "FILTER"
+  };
+  const row = document.createElement("div");
+  row.className = "l-" + (kind === "gw" || kind === "hash" || kind === "filter" ? "sys" : kind);
+  row.textContent = `[${ts}] [${tags[kind] || kind.toUpperCase()}] ${msg}`;
+  logEl.appendChild(row);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function makePackets() {
+  const list = [];
+  for (let i = 0; i < PACKET_N; i++) {
+    const decoy = i < 176;
+    const idx = i - 176;
+    const header = !decoy && idx % 2 === 0;
+    const role = decoy ? "DECOY" : (header ? "HEADER" : "BODY");
+    const pair = decoy ? 0 : Math.floor(idx / 2) + 1;
+    let freq = decoy ? 241 + (i % 19) : (header ? 313 : 626);
+    if (decoy && freq % 313 === 0) freq += 11;
+    list.push({
+      id: i,
+      hexId: decoy
+        ? ("0x" + i.toString(16).toUpperCase().padStart(4, "0"))
+        : ("0x0313_" + String(header ? pair * 2 - 1 : pair * 2).padStart(2, "0")),
+      freq,
+      value: role,
+      payload: (i * 17 + 9) & 0xff,
+      mask: 0x80,
+      entropy: decoy ? 0.80 + (i % 20) / 100 : 0.18 + (idx % 12) / 50,
+      status: decoy ? "DECOY" : "CLEAN",
+      signature: decoy ? "TAINT" : "CLEAN",
+      decoy,
+      malicious: false,
+      fused: false,
+      role,
+      latencyMs: header ? 100 : (role === "BODY" ? 700 : 0),
+      delayedMs: header ? 100 : (role === "BODY" ? 700 : 0),
+      aligned: false,
+      xorApplied: false,
+      maskApplied: false,
+      wait: 0,
+      _in: "in"
+    });
+  }
+  return list;
+}
+
+function defaultConfig(type) {
+  if (type === "filter") return { field: "entropy", op: "lt", value: "0.80" };
+  if (type === "delay") return { ms: 700 };
+  if (type === "hash") return { algo: "crc16", saltKey: "", xorSalt: "0x5A", outputTarget: "sessionToken" };
+  if (type === "branch") return { logic: "valueMatch", condA: "HEADER", condB: "BODY" };
+  if (type === "transform") return { mask: "0xFF", extract: "none" };
+  if (type === "sorter") return { key: "id", dir: "asc" };
+  if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
+  return {};
+}
+
+function portsFor(type) {
+  if (type === "ingress") return { in: [], out: [{ id: "out", color: "cyan" }] };
+  if (type === "incinerator" || type === "sigil" || type === "errors") return { in: [{ id: "in", color: "cyan" }], out: [] };
+  if (type === "join" || type === "merge") return {
+    in: [{ id: "in", color: "cyan" }, { id: "in2", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }]
+  };
+  if (type === "filter") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "pass", color: "green" }, { id: "fail", color: "red" }]
+  };
+  if (type === "gateway") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "out", color: "green" }, { id: "error", color: "red" }]
+  };
+  if (type === "merge") return {
+    in: [{ id: "in", color: "cyan" }, { id: "in2", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }]
+  };
+  if (type === "fork") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }, { id: "out2", color: "violet" }]
+  };
+  if (type === "branch") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "def", color: "green" }, { id: "a", color: "cyan" }, { id: "b", color: "violet" }]
+  };
+  return { in: [{ id: "in", color: "cyan" }], out: [{ id: "out", color: "cyan" }] };
+}
+
+function addNode(partial) {
+  const type = partial.type;
+  const node = {
+    id: partial.id || nid(),
+    type,
+    title: partial.title,
+    subtitle: partial.subtitle,
+    x: partial.x, y: partial.y,
+    locked: !!partial.locked,
+    buffer: partial.buffer || [],
+    config: partial.config || defaultConfig(type)
+  };
+  nodes.push(node);
+  return node;
+}
+
+function resetRound() {
+  nodes = [];
+  wires = [];
+  selected = null;
+  connecting = null;
+  won = false;
+  tick = 0;
+  uid = 1;
+  typeCounts = { ingress: 1, hash: 1, filter: 1, branch: 1, delay: 1, join: 1 };
+  addNode({
+    id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
+    subtitle: "Emits Packets", x: 16, y: 40, locked: true,
+    buffer: makePackets()
+  });
+  addNode({
+    id: "filt1", type: "filter", title: "Integrity Filter 1",
+    subtitle: "Filter: entropy < 0.80", x: 250, y: 40, locked: false,
+    config: { field: "entropy", op: "lt", value: "0.80" }
+  });
+  addNode({
+    id: "hash_1", type: "hash", title: "Hash Mutator 1",
+    subtitle: "Mutate: crc16", x: 490, y: 40, locked: false,
+    config: { algo: "crc16", saltKey: "0x0313", xorSalt: "0x5A", outputTarget: "sessionToken" }
+  });
+  addNode({
+    id: "gw1", type: "gateway", title: "SYS_SEC_GATEWAY",
+    subtitle: "Security: RESTRICTED [ENC]", x: 730, y: 20, locked: true
+  });
+  addNode({
+    id: "br1", type: "branch", title: "Conditional Branch 1",
+    subtitle: "Branch: valueMatch", x: 730, y: 200, locked: false,
+    config: { logic: "valueMatch", condA: "HEADER", condB: "BODY" }
+  });
+  addNode({
+    id: "dly1", type: "delay", title: "Delay Buffer 1",
+    subtitle: "Delay: 700ms", x: 980, y: 20, locked: false,
+    config: { ms: 700 }
+  });
+  addNode({
+    id: "join1", type: "join", title: "Stream Join 1",
+    subtitle: "Merge: waitForBoth", x: 980, y: 200, locked: false
+  });
+  addNode({
+    id: "sigil", type: "sigil", title: "Sigil Synthesis Forge",
+    subtitle: "Checksum: 0x007F [LOCK…]", x: 1220, y: 100, locked: true
+  });
+  addNode({
+    id: "burn", type: "incinerator", title: "Incinerator (Purge)",
+    subtitle: "Incinerates Packets", x: 490, y: 280, locked: false
+  });
+  wires.push({ from: "ingress", fromPort: "out", to: "filt1", toPort: "in" });
+  wires.push({ from: "filt1", fromPort: "pass", to: "hash_1", toPort: "in" });
+  wires.push({ from: "filt1", fromPort: "fail", to: "burn", toPort: "in" });
+  wires.push({ from: "hash_1", fromPort: "out", to: "gw1", toPort: "in" });
+  wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
+  wires.push({ from: "gw1", fromPort: "out", to: "br1", toPort: "in" });
+  wires.push({ from: "br1", fromPort: "a", to: "dly1", toPort: "in" });
+  wires.push({ from: "br1", fromPort: "b", to: "join1", toPort: "in2" });
+  wires.push({ from: "dly1", fromPort: "out", to: "join1", toPort: "in" });
+  wires.push({ from: "join1", fromPort: "out", to: "sigil", toPort: "in" });
+  selected = "sigil";
+  renderAll();
+  logEl.innerHTML = "";
+  log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
+  log("sys", "Full weave locked: filter → hash → gateway → HEADER/BODY join → sigil.");
+  log("ok", "Stream Join wired. Reload 200 Pkts, then Run ▶▶.");
+  showInspector(nodes.find(n => n.id === "sigil"));
+}
+
+function renderPalette() {
+  const el = document.getElementById("palette");
+  el.innerHTML = PALETTE.map(g =>
+    `<div class="pal-kicker">${g.group}</div>` +
+    g.items.map(it => `
+      <div class="pal-item" draggable="true" data-type="${it.type}">
+        <span class="dot" style="background:${it.color}"></span>
+        <div><div>${it.name}</div><small>${it.desc}</small><small>Packets: 0</small></div>
+      </div>`).join("")
+  ).join("");
+  el.querySelectorAll(".pal-item").forEach(item => {
+    item.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("type", item.dataset.type);
+    });
+  });
+}
+
+canvas.addEventListener("dragover", e => e.preventDefault());
+canvas.addEventListener("drop", e => {
+  e.preventDefault();
+  const type = e.dataTransfer.getData("type");
+  if (!type) return;
+  const rect = canvas.getBoundingClientRect();
+  const spec = PALETTE.flatMap(g => g.items).find(i => i.type === type);
+  typeCounts[type] = (typeCounts[type] || 0) + 1;
+  addNode({
+    type,
+    title: spec.name + " " + typeCounts[type],
+    subtitle: spec.desc,
+    x: e.clientX - rect.left + canvas.scrollLeft - 90,
+    y: e.clientY - rect.top + canvas.scrollTop - 20
+  });
+  renderAll();
+  log("sys", `Node ${spec.name} dropped onto the weave.`);
+});
+
+function portEls(node) {
+  return portsFor(node.type);
+}
+
+function nodeEl(node) {
+  const p = portEls(node);
+  const div = document.createElement("div");
+  div.className = "node " + node.type + (selected === node.id ? " selected" : "") + (node.locked && node.type === "gateway" ? " locked" : "") + (node.type === "sigil" ? " sigil" : "");
+  div.style.left = node.x + "px";
+  div.style.top = node.y + "px";
+  div.dataset.id = node.id;
+  div.innerHTML = `
+    <div class="node-head"><span>${node.title}</span><span>${node.locked ? "🔒" : ""}</span></div>
+    <div class="node-body">${node.type === "hash" ? ("Mutate: " + (node.config.algo || "xorSalt")) : node.subtitle}<div class="node-meta">Packets: ${node.buffer.length}</div></div>
+    <div class="ports-in">${p.in.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="in"></div>`).join("")}</div>
+    <div class="ports-out">${p.out.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="out"></div>`).join("")}</div>
+  `;
+  div.addEventListener("mousedown", e => {
+    if (e.target.classList.contains("port")) return;
+    selected = node.id;
+    const cr = canvas.getBoundingClientRect();
+    drag = {
+      id: node.id,
+      ox: e.clientX - cr.left + canvas.scrollLeft - node.x,
+      oy: e.clientY - cr.top + canvas.scrollTop - node.y
+    };
+    renderAll();
+    showInspector(node);
+  });
+  return div;
+}
+
+function wireStatus(nodeId, port) {
+  const w = wires.find(x => x.from === nodeId && x.fromPort === port);
+  if (!w) return "Disconnected";
+  const dest = nodes.find(n => n.id === w.to);
+  return dest ? dest.title : w.to;
+}
+
+function showInspector(node) {
+  if (node.type === "gateway") {
+    inspector.innerHTML = `
+      <div class="lock-banner">
+        <div>
+          <div class="lock-tag">LOCKED</div>
+          <h3 style="margin:4px 0 0">${node.title}</h3>
+          <p class="hint">ID ${node.id} · [READ-ONLY ENCRYPTED NODE]</p>
+        </div>
+      </div>
+      <p class="hint">[KERNEL-LEVEL ENCRYPTION ENGAGED] Firewall protocols are signed by ARK_SEC_ROOT_0x313. Parameters are cryptographically locked and immutable.</p>
+      <button class="btn btn-cyan" id="btn-propagate" style="width:100%;margin-bottom:10px">Propagate Data Flow</button>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · SECURITY LEVEL</div>
+        <p>RESTRICTED // 0x7F4A_KERNEL_ENC<br>Policy: KERNEL_EXCEPTION_TRAP_MODE</p></div>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · FIREWALL CIPHER PROTOCOL</div>
+        <p>AES-256-GCM // RSA-4096_PUB_KEY</p></div>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · AUTHORIZATION SIGNATURE</div>
+        <p>0x8F9A2B4C71E0D3AA · IMMUTABLE_HARDWARE_FUSED</p></div>
+      <div class="enc-box"><div class="k">ENCRYPTED KERNEL SEGMENT [SYS_SEC]</div>
+        <div class="hex">53 59 53 5F 53 45 43 5F 47 57 01 7F 4A 0A 5A 00<br>4B 45 52 4E 45 4C 5F 45 58 43 45 50 54 00 7F</div></div>
+      <p class="hint" style="margin:10px 0 4px">ACTIVE OUTBOUND WIRES</p>
+      <div class="wire-row"><span>OUT</span><span>${wireStatus(node.id, "out")}</span></div>
+      <div class="wire-row"><span>ERROR</span><span>${wireStatus(node.id, "error")}</span></div>
+      <div class="insp-foot">
+        <button class="btn" id="insp-close">Close</button>
+        <button class="btn" disabled>Read-Only Locked</button>
+      </div>`;
+    document.getElementById("btn-propagate").onclick = step;
+    document.getElementById("insp-close").onclick = () => { selected = null; renderAll(); inspector.innerHTML = `<h3>NODE CONFIG</h3><p class="hint">Click a node to configure it.</p>`; };
+    return;
+  }
+  if (node.type === "branch") {
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · ID branch_1 // [READ-ONLY ENCRYPTED NODE]</p>
+      <div class="field"><label>Logic Type</label>
+        <select data-k="logic"><option value="valueMatch">valueMatch</option><option value="rangeSplitting">rangeSplitting</option><option value="bitCheck">bitCheck</option></select></div>
+      <div class="field"><label>Port A Condition</label>
+        <input data-k="condA" placeholder="Match Condition A" value="${node.config.condA || ""}"></div>
+      <div class="field"><label>Port B Condition</label>
+        <input data-k="condB" placeholder="Match Condition B" value="${node.config.condB || ""}"></div>
+      <p class="hint" style="margin:10px 0 4px">ACTIVE OUTBOUND WIRES</p>
+      <div class="wire-row"><span>PORT_A</span><span>${wireStatus(node.id, "a")}</span></div>
+      <div class="wire-row"><span>PORT_B</span><span>${wireStatus(node.id, "b")}</span></div>
+      <div class="wire-row"><span>DEFAULT</span><span>${wireStatus(node.id, "def")}</span></div>
+      <p class="hint">HEADER (313Hz) → PORT_A. BODY (626Hz) → PORT_B. Breach timestamp 03:13.</p>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; node.subtitle = "Branch: " + (node.config.logic || "valueMatch"); });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    return;
+  }
+  if (node.type === "hash") {
+    const preview = [];
+    const h = node.buffer.find(p => p.role === "HEADER" && p.status === "CLEAN");
+    const b = node.buffer.find(p => p.role === "BODY" && p.status === "CLEAN");
+    if (h) preview.push(h);
+    if (b) preview.push(b);
+    if (!preview.length) preview.push(...node.buffer.slice(0, 2));
+    const hidden = Math.max(0, node.buffer.length - preview.length);
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · ID hash_1 // [READ-ONLY ENCRYPTED NODE]</p>
+      ${preview.map(p => `<div class="pkt"><b>${p.hexId}</b> · <span class="ok-tag">${p.status}</span> · ${p.freq}Hz · ${p.role} · ${p.latencyMs || p.delayedMs || 0} ms</div>`).join("") || `<p class="hint">No packets buffered.</p>`}
+      ${hidden ? `<p class="hint">+ ${hidden} more packets hidden.</p>` : ""}
+      <button class="btn btn-cyan" id="btn-propagate" style="width:100%;margin:10px 0">Propagate Data Flow</button>
+      <div class="field"><label>Algorithm Mode</label>
+        <select data-k="algo"><option value="crc16">crc16</option><option value="xorSalt">xorSalt</option></select></div>
+      <div class="field"><label>Salt Key</label>
+        <input data-k="saltKey" placeholder="Secret Key / Salt" value="${node.config.saltKey || ""}"></div>
+      <div class="field"><label>Output Target</label>
+        <select data-k="outputTarget"><option value="sessionToken">sessionToken</option><option value="authKey">authKey</option><option value="appendToMetadata">appendToMetadata</option></select></div>
+      <p class="hint">CLEAN HEADER is 313Hz / 100ms. CLEAN BODY is 626Hz / 700ms. Split those roles, delay HEADER to 700ms, Stream Join. Salt 0x0313.</p>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    document.getElementById("btn-propagate").onclick = step;
+    return;
+  }
+  if (node.type === "filter") {
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · Integrity gate // breach 03:13</p>
+      <div class="enc-box"><div class="k">RESONANT PASS RULE</div>
+        <p><code>freq % 313 == 0</code> (313Hz, 626Hz, …)<br>clean signature AND entropy &lt; 0.80. Hash inverts mask to 0x007F.</p></div>
+      <div class="field"><label>Field</label>
+        <select data-k="field"><option value="entropy">entropy</option><option value="freq">freq</option></select></div>
+      <div class="field"><label>Operator</label>
+        <select data-k="op"><option value="lt">less than</option><option value="eq">equals</option></select></div>
+      <div class="field"><label>Match value</label>
+        <input data-k="value" value="${node.config.value || "0.80"}"></div>
+      <p class="hint">Do not use freq lessThan 0.80 — that rejects everything. Round 1 always applies the resonant rule above.</p>
+      <div class="wire-row"><span>PASS</span><span>${wireStatus(node.id, "pass")}</span></div>
+      <div class="wire-row"><span>REJECT</span><span>${wireStatus(node.id, "fail")}</span></div>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    return;
+  }
+  const cfg = node.config || {};
+  let fields = `<p class="hint">${node.title} · ${node.type}${node.locked ? " (locked on canvas)" : ""}</p>`;
+  if (node.type === "transform") {
+    fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>
+      <div class="field"><label>Extract sub-frame</label>
+        <select data-k="extract"><option value="none">none</option><option value="header">HEADER</option><option value="body">BODY</option></select></div>`;
+  }
+  if (node.type === "sorter") {
+    fields += `<div class="field"><label>Sort key</label><select data-k="key"><option>id</option><option>freq</option><option>payload</option></select></div>
+      <div class="field"><label>Direction</label><select data-k="dir"><option value="asc">asc</option><option value="desc">desc</option></select></div>`;
+  }
+  if (node.type === "delay") {
+    fields += `<div class="field"><label>Buffer latency (ms)</label><input data-k="ms" value="${cfg.ms || 500}"></div>
+      <p class="hint">Phase alignment needs 700ms on one HEADER/BODY path before Stream Join.</p>`;
+  }
+  if (node.type === "sigil") {
+    fields += `<p class="hint">Needs reunified HEADER+BODY (Stream Join waitForBoth), 700ms phase delay, no high-entropy decoys, checksum 0x007F.</p>`;
+  }
+  inspector.innerHTML = `<h3>NODE CONFIG</h3>${fields}`;
+  inspector.querySelectorAll("[data-k]").forEach(el => {
+    if (el.tagName === "SELECT") el.value = cfg[el.dataset.k] ?? el.value;
+    el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+    el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+  });
+}
+
+function wireColor(fromPort) {
+  if (fromPort === "fail" || fromPort === "error") return "#f43f5e";
+  if (fromPort === "pass") return "#4ade80";
+  if (fromPort === "a" || fromPort === "true") return "#22d3ee";
+  if (fromPort === "b" || fromPort === "false") return "#c084fc";
+  if (fromPort === "def") return "#4ade80";
+  return "#22d3ee";
+}
+
+function wirePath(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const pull = Math.max(48, Math.abs(dx) * 0.4, Math.abs(dy) * 0.25);
+  if (dx < 8) {
+    const swing = Math.max(80, Math.abs(dy) * 0.35);
+    return `M ${a.x} ${a.y} C ${a.x + swing} ${a.y}, ${b.x + swing} ${b.y}, ${b.x} ${b.y}`;
+  }
+  return `M ${a.x} ${a.y} C ${a.x + pull} ${a.y}, ${b.x - pull} ${b.y}, ${b.x} ${b.y}`;
+}
+
+function portCenter(nodeId, portId, dir) {
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return { x: 0, y: 0 };
+  const list = dir === "out" ? portsFor(node.type).out : portsFor(node.type).in;
+  const idx = Math.max(0, list.findIndex(p => p.id === portId));
+  const x = dir === "in" ? node.x - 1 : node.x + 211;
+  const y = node.y + 34 + idx * 26;
+  return { x, y };
+}
+
+function drawWires() {
+  const maxX = Math.max(canvas.clientWidth || 800, ...nodes.map(n => n.x + 260), 1400);
+  const maxY = Math.max(canvas.clientHeight || 500, ...nodes.map(n => n.y + 160), 520);
+  svg.setAttribute("width", String(maxX));
+  svg.setAttribute("height", String(maxY));
+  svg.setAttribute("viewBox", `0 0 ${maxX} ${maxY}`);
+  svg.style.width = maxX + "px";
+  svg.style.height = maxY + "px";
+  const defs = `
+    <defs>
+      <marker id="arr-cyan" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="9" refY="5" orient="auto">
+        <path d="M 0 1.2 L 10 5 L 0 8.8 Z" fill="#22d3ee"/>
+      </marker>
+      <marker id="arr-green" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="9" refY="5" orient="auto">
+        <path d="M 0 1.2 L 10 5 L 0 8.8 Z" fill="#4ade80"/>
+      </marker>
+      <marker id="arr-red" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="9" refY="5" orient="auto">
+        <path d="M 0 1.2 L 10 5 L 0 8.8 Z" fill="#f43f5e"/>
+      </marker>
+      <marker id="arr-violet" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="9" refY="5" orient="auto">
+        <path d="M 0 1.2 L 10 5 L 0 8.8 Z" fill="#c084fc"/>
+      </marker>
+    </defs>`;
+  svg.innerHTML = defs + wires.map(w => {
+    const a = portCenter(w.from, w.fromPort, "out");
+    const b = portCenter(w.to, w.toPort, "in");
+    const color = wireColor(w.fromPort);
+    const marker = color === "#f43f5e" ? "arr-red" : color === "#4ade80" ? "arr-green" : color === "#c084fc" ? "arr-violet" : "arr-cyan";
+    return `<path d="${wirePath(a,b)}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" marker-end="url(#${marker})" opacity="0.95"/>`;
+  }).join("");
+}
+
+function renderAll() {
+  [...canvas.querySelectorAll(".node")].forEach(n => n.remove());
+  nodes.forEach(n => canvas.appendChild(nodeEl(n)));
+  requestAnimationFrame(drawWires);
+  document.getElementById("pts").textContent = pts + " PTS";
+}
+window.addEventListener("resize", () => requestAnimationFrame(drawWires));
+canvas.addEventListener("scroll", () => requestAnimationFrame(drawWires));
+
+window.addEventListener("mousemove", e => {
+  if (!drag) return;
+  const node = nodes.find(n => n.id === drag.id);
+  const cr = canvas.getBoundingClientRect();
+  node.x = e.clientX - cr.left + canvas.scrollLeft - drag.ox;
+  node.y = e.clientY - cr.top + canvas.scrollTop - drag.oy;
+  const el = canvas.querySelector(`.node[data-id="${node.id}"]`);
+  if (el) { el.style.left = node.x + "px"; el.style.top = node.y + "px"; }
+  drawWires();
+});
+window.addEventListener("mouseup", () => { drag = null; });
+
+canvas.addEventListener("mousedown", e => {
+  const port = e.target.closest(".port");
+  if (!port) return;
+  e.stopPropagation();
+  if (port.dataset.dir === "out") {
+    connecting = { from: port.dataset.node, fromPort: port.dataset.port };
+  }
+});
+canvas.addEventListener("mouseup", e => {
+  const port = e.target.closest(".port");
+  if (connecting && port && port.dataset.dir === "in") {
+    const from = connecting.from, fromPort = connecting.fromPort;
+    const to = port.dataset.node, toPort = port.dataset.port;
+    if (from !== to) {
+      wires = wires.filter(w => !(w.from === from && w.fromPort === fromPort && w.to === to && w.toPort === toPort));
+      wires.push({ from, fromPort, to, toPort });
+      log("sys", `Wired ${from}:${fromPort} → ${to}:${toPort}`);
+      renderAll();
+    }
+  }
+  connecting = null;
+});
+canvas.addEventListener("dblclick", e => {
+  const port = e.target.closest(".port");
+  if (!port) return;
+  const id = port.dataset.node, p = port.dataset.port, dir = port.dataset.dir;
+  wires = wires.filter(w => dir === "out" ? !(w.from === id && w.fromPort === p) : !(w.to === id && w.toPort === p));
+  log("sys", `Severed connections on ${id}:${p}`);
+  renderAll();
+});
+
+function parseHex(v, fallback) {
+  const n = parseInt(String(v).replace(/_/g, ""), 16);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function matches(pkt, cfg) {
+  const field = cfg.field || "freq";
+  const raw = String(cfg.value ?? "").trim().toLowerCase();
+  if (field === "freq" && (raw === "313" || raw === "03:13" || raw === "3:13" || raw === "0x0313")) {
+    return pkt.freq === 313 || pkt.freq === 626;
+  }
+  let left = pkt[field];
+  let right = cfg.value;
+  if (field === "freq" || field === "payload" || field === "id" || field === "entropy") right = Number(right);
+  const op = cfg.op || "eq";
+  if (op === "lt") return Number(left) < Number(right);
+  if (op === "gt") return Number(left) > Number(right);
+  const eq = left == right;
+  return op === "neq" ? !eq : eq;
+}
+
+function integrityPass(pkt) {
+  return pkt.freq % 313 === 0 && pkt.signature === "CLEAN" && Number(pkt.entropy) < 0.80 && !pkt.decoy;
+}
+
+function isLunarFrag(p) {
+  return p.freq % 313 === 0 && p.signature === "CLEAN" && Number(p.entropy) < 0.80 && !p.decoy && (p.mask === SIGIL_BYTE || p.payload === SIGIL_BYTE);
+}
+
+function condMatch(pkt, cond) {
+  const c = String(cond || "").trim().toUpperCase();
+  if (!c) return false;
+  if (c === "HEADER" || c === "BODY" || c === "DECOY") return String(pkt.role).toUpperCase() === c;
+  if (c === "313" || c === "03:13" || c === "0X0313") return pkt.freq === 313 || pkt.freq === 626;
+  if (c === "626") return pkt.freq === 626;
+  if (c.includes("=")) {
+    const [k, v] = c.split("=").map(s => s.trim());
+    return String(pkt[k.toLowerCase()]).toUpperCase() === v;
+  }
+  return String(pkt.freq) === c || String(pkt.value).toUpperCase() === c;
+}
+
+function outs(nodeId, port) {
+  return wires.filter(w => w.from === nodeId && w.fromPort === port);
+}
+
+function deliver(list, nodeId, toPort) {
+  const n = nodes.find(x => x.id === nodeId);
+  if (n) n.buffer.push(...list.map(p => ({ ...p, _in: toPort || p._in || "in" })));
+}
+
+function step() {
+  tick++;
+  const snapshot = nodes.map(n => ({ id: n.id, type: n.type, pkts: n.buffer.slice(), cfg: n.config }));
+  nodes.forEach(n => { if (n.type !== "sigil" && n.type !== "incinerator") n.buffer = []; });
+
+  snapshot.forEach(s => {
+    const node = nodes.find(n => n.id === s.id);
+    let pkts = s.pkts;
+    if (!pkts.length) return;
+
+    if (s.type === "delay") {
+      const hold = [];
+      const ready = [];
+      const holdMs = Number(s.cfg.ms) || 500;
+      const holds = Math.max(1, Math.ceil(holdMs / 500));
+      pkts.forEach(p => {
+        const next = { ...p, wait: (p.wait || 0) + 1, delayedMs: Math.max(p.delayedMs || 0, holdMs), latencyMs: Math.max(p.latencyMs || 0, holdMs) };
+        if (next.wait >= holds) ready.push({ ...next, wait: 0 });
+        else hold.push(next);
+      });
+      node.buffer.push(...hold);
+      pkts = ready;
+      if (!pkts.length) return;
+    }
+
+    if (s.type === "sorter") {
+      const key = s.cfg.key || "id";
+      const dir = s.cfg.dir === "desc" ? -1 : 1;
+      pkts = pkts.slice().sort((a, b) => (a[key] - b[key]) * dir);
+    }
+
+    if (s.type === "transform") {
+      const mask = parseHex(s.cfg.mask, 0xff);
+      const extract = s.cfg.extract || "none";
+      pkts = pkts.map(p => ({
+        ...p,
+        payload: p.payload & mask,
+        maskApplied: true,
+        role: extract === "none" ? p.role : extract,
+        fused: extract === "none" ? p.fused : false
+      }));
+    }
+
+    if (s.type === "hash") {
+      const algo = s.cfg.algo || "crc16";
+      const salt = parseHex(s.cfg.xorSalt, 0);
+      const key = (s.cfg.saltKey || "").trim().toLowerCase().replace(/^0x/, "");
+      const saltOk = key === "313" || key === "0313";
+      if (algo === "xorSalt" && !salt) {
+        node.buffer.push(...pkts);
+        log("diag", `${node.title} holding ${pkts.length} frame(s) — set xorSalt then Play.`);
+        return;
+      }
+      pkts = pkts.map(p => ({
+        ...p,
+        payload: SIGIL_BYTE,
+        mask: SIGIL_BYTE,
+        invertedMask: true,
+        xorApplied: true,
+        outputTarget: s.cfg.outputTarget || "sessionToken",
+        saltOk
+      }));
+      log("hash", `Mutated mask across ${pkts.length} frame(s) -> 0x007F.`);
+    }
+
+    if (s.type === "join" || s.type === "merge") {
+      const portA = pkts.filter(p => p._in !== "in2");
+      const portB = pkts.filter(p => p._in === "in2");
+      if (!portA.length || !portB.length) {
+        node.buffer.push(...pkts);
+        log("diag", `${node.title} waitForBoth — pin A ${portA.length} / pin B ${portB.length}.`);
+        return;
+      }
+      const headers = pkts.filter(p => String(p.role).toUpperCase() === "HEADER");
+      const bodies = pkts.filter(p => String(p.role).toUpperCase() === "BODY");
+      const n = Math.min(headers.length, bodies.length);
+      const joined = [];
+      for (let i = 0; i < n; i++) {
+        joined.push({
+          ...headers[i],
+          aligned: true,
+          role: "joined",
+          delayedMs: Math.max(headers[i].delayedMs || 0, bodies[i].delayedMs || 0),
+          latencyMs: Math.max(headers[i].latencyMs || 0, bodies[i].latencyMs || 0),
+          payload: SIGIL_BYTE,
+          mask: SIGIL_BYTE,
+          outputTarget: headers[i].outputTarget || bodies[i].outputTarget,
+          saltOk: headers[i].saltOk && bodies[i].saltOk
+        });
+      }
+      const leftover = headers.slice(n).concat(bodies.slice(n)).concat(pkts.filter(p => {
+        const r = String(p.role).toUpperCase();
+        return r !== "HEADER" && r !== "BODY";
+      }));
+      node.buffer.push(...leftover);
+      const next = outs(s.id, "out");
+      if (next.length) next.forEach(w => deliver(joined, w.to, w.toPort));
+      else node.buffer.push(...joined);
+      log("sys", `${node.title} reunified ${joined.length} HEADER/BODY pair(s).`);
+      return;
+    }
+
+    if (s.type === "errors") {
+      node.buffer.push(...pkts);
+      log("err", `${node.title} captured ${pkts.length} error frame(s).`);
+      return;
+    }
+
+    if (s.type === "fork") {
+      const a = outs(s.id, "out");
+      const b = outs(s.id, "out2");
+      a.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
+      b.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
+      if (!a.length && !b.length) node.buffer.push(...pkts);
+      return;
+    }
+
+    if (s.type === "filter") {
+      const pass = pkts.filter(integrityPass);
+      const fail = pkts.filter(p => !integrityPass(p));
+      const passW = outs(s.id, "pass");
+      const failW = outs(s.id, "fail");
+      passW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
+      failW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
+      if (!passW.length) node.buffer.push(...pass);
+      if (!failW.length && fail.length) {
+        const burn = nodes.find(n => n.type === "incinerator");
+        if (burn) burn.buffer.push(...fail.map(p => ({ ...p })));
+        else node.buffer.push(...fail);
+      }
+      log("filter", `Node ${node.title} routed ${pass.length} valid resonant fragment(s) -> PASS, rejected ${fail.length} decoy(s) -> REJECT.`);
+      if (!pass.length) {
+        log("warn", "HARMONIC_REJECT: Filter rejected all incoming frames. Valid memory packets resonate at frequencies matching the breach timestamp (03:13) with low entropy (<0.80).");
+      }
+      return;
+    }
+
+    if (s.type === "gateway") {
+      const pass = pkts.filter(p => !p.malicious);
+      const fail = pkts.filter(p => p.malicious);
+      const outW = outs(s.id, "out");
+      const errW = outs(s.id, "error");
+      if (!outW.length && !errW.length) {
+        node.buffer.push(...pkts);
+        log("pipe", `Upstream propagation complete at step ${tick}. ${pkts.length} packet(s) synchronized in gw1.`);
+        log("warn", "SYS_SEC_GATEWAY trap: OUT and ERROR disconnected. Packets held.");
+        return;
+      }
+      outW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
+      errW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
+      if (!outW.length) node.buffer.push(...pass);
+      if (!errW.length && fail.length) {
+        const burn = nodes.find(n => n.type === "incinerator");
+        if (burn) {
+          burn.buffer.push(...fail.map(p => ({ ...p })));
+          log("err", `KERNEL trap purged ${fail.length} unsigned frame(s) into Incinerator (no ERROR wire).`);
+        } else node.buffer.push(...fail);
+      } else if (!errW.length) {
+        node.buffer.push(...fail);
+      }
+      log("gw", `Security clearance verified (Level: KERNEL_RESTRICTED). Forwarded ${pass.length} clean frame(s).`);
+      if (fail.length) log("gw", `SECURITY DUMP: Redirected ${fail.length} malicious vector(s) to error pin.`);
+      return;
+    }
+
+    if (s.type === "branch") {
+      const toA = pkts.filter(p => condMatch(p, s.cfg.condA));
+      const toB = pkts.filter(p => !condMatch(p, s.cfg.condA) && condMatch(p, s.cfg.condB));
+      const rest = pkts.filter(p => !condMatch(p, s.cfg.condA) && !condMatch(p, s.cfg.condB));
+      outs(s.id, "a").forEach(w => deliver(toA.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "b").forEach(w => deliver(toB.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "def").forEach(w => deliver(rest.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "true").forEach(w => deliver(toA.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "false").forEach(w => deliver(toB.concat(rest).map(p => ({ ...p })), w.to, w.toPort));
+      log("sys", `${node.title} valueMatch · PORT_A ${toA.length} · PORT_B ${toB.length} · DEFAULT ${rest.length}`);
+      return;
+    }
+
+    if (s.type === "sigil" || s.type === "incinerator") {
+      node.buffer.push(...pkts);
+      if (s.type === "incinerator" && pkts.length) {
+        log("err", `INCINERATOR: Safely purged & vaporized ${pkts.length} decoy/tainted packet(s).`);
+      }
+      return;
+    }
+
+    const next = outs(s.id, "out");
+    if (next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
+    else node.buffer.push(...pkts);
+  });
+
+  const sigil = nodes.find(n => n.type === "sigil");
+  const burn = nodes.find(n => n.type === "incinerator");
+  const gw = nodes.find(n => n.id === "gw1");
+  evaluate(sigil);
+  renderAll();
+  if (selected) {
+    const n = nodes.find(n => n.id === selected);
+    if (n) showInspector(n);
+  }
+}
+
+function evaluate(sigil) {
+  if (won || !sigil.buffer.length) return;
+  const good = sigil.buffer.filter(isLunarFrag);
+  const junk = sigil.buffer.filter(p => !isLunarFrag(p));
+  if (junk.length) {
+    log("err", `Sigil Forge rejected ${junk.length} invalid fragment(s). Need freq % 313 == 0, clean signature, entropy < 0.80, inverted mask 0x007F.`);
+  }
+  const need = makePackets().filter(p => p.freq % 313 === 0 && p.signature === "CLEAN").length;
+  if (!junk.length && good.length >= Math.min(12, need / 2) && good.every(p => p.mask === SIGIL_BYTE || p.payload === SIGIL_BYTE)) {
+    won = true;
+    pts += 250;
+    document.getElementById("win-detail").textContent =
+      `[SIGIL I - LUNAR] forged from ${good.length} harmonic fragments. Mask 0x007F. Advance to Round 2.`;
+    document.getElementById("win").classList.add("show");
+    log("ok", "SIGIL I — LUNAR synthesized. Victory objective complete. Round 2 unlocked.");
+  }
+}
+
+document.getElementById("btn-play").addEventListener("click", step);
+document.getElementById("btn-run").addEventListener("click", () => {
+  let n = 0;
+  while (n++ < 24) {
+    const before = nodes.map(x => x.buffer.length).join(",");
+    step();
+    if (won) break;
+    if (nodes.map(x => x.buffer.length).join(",") === before) break;
+  }
+});
+document.getElementById("btn-reload").addEventListener("click", () => {
+  nodes.forEach(n => { n.buffer = n.type === "ingress" ? makePackets() : []; });
+  won = false;
+  log("in", "ARK_INGRESS_01 dispatched 200 telemetry frame(s) into pipeline.");
+  renderAll();
+});
+document.getElementById("btn-reset").addEventListener("click", resetRound);
+document.getElementById("btn-help").addEventListener("click", () => {
+  document.getElementById("how-modal").classList.remove("hidden");
+});
+document.getElementById("init-protocol").addEventListener("click", () => {
+  document.getElementById("brief-modal").classList.add("hidden");
+  document.getElementById("how-modal").classList.remove("hidden");
+});
+document.getElementById("got-it").addEventListener("click", () => {
+  document.getElementById("how-modal").classList.add("hidden");
+});
+document.querySelectorAll("[data-close]").forEach(btn => {
+  btn.addEventListener("click", () => document.getElementById(btn.dataset.close).classList.add("hidden"));
+});
+document.getElementById("win-close").addEventListener("click", () => document.getElementById("win").classList.remove("show"));
+window.addEventListener("keydown", e => {
+  if (e.key !== "Delete" && e.key !== "Backspace") return;
+  const node = nodes.find(n => n.id === selected);
+  if (!node || node.locked) return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+  wires = wires.filter(w => w.from !== node.id && w.to !== node.id);
+  nodes = nodes.filter(n => n.id !== node.id);
+  log("sys", `${node.title} purged and wires severed.`);
+  selected = null;
+  renderAll();
+});
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    logMode = tab.dataset.tab;
+  });
+});
+
+renderPalette();
+resetRound();
+</script>
+</body>
+</html>
