@@ -245,7 +245,7 @@
       <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
     </div>
     <footer>
-      <span class="hint">Filter entropy &lt; 80, Hash crc16, gateway ERROR → Error Handler, fork HEADER/BODY, Delay 700ms, Stream Join, then Sigil.</span>
+      <span class="hint">Filter entropy &lt; 80. Hash salt 0x0313, output sessionToken. Branch HEADER vs BODY, delay HEADER to 700ms, Stream Join into the sigil.</span>
       <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
     </footer>
   </div>
@@ -329,9 +329,13 @@ function makePackets() {
     const malicious = !decoy && i < 92;
     const header = !decoy && !malicious && ((i - 92) % 2 === 0);
     const role = decoy ? "DECOY" : (malicious ? "VECTOR" : (header ? "HEADER" : "BODY"));
+    const pair = Math.floor((i - 92) / 2) + 1;
+    const hexId = decoy || malicious
+      ? ("0x" + i.toString(16).toUpperCase().padStart(4, "0"))
+      : ("0x0313_" + String(header ? pair * 2 - 1 : pair * 2).padStart(2, "0"));
     list.push({
       id: i,
-      hexId: "0x0313_" + String(i + 1).padStart(2, "0"),
+      hexId,
       freq: decoy ? 240 + (i % 9) : (malicious ? 480 : (header ? 313 : 626)),
       value: role,
       payload: (i * 17 + 9) & 0xff,
@@ -418,33 +422,48 @@ function resetRound() {
   won = false;
   tick = 0;
   uid = 1;
-  typeCounts = { ingress: 1, hash: 0 };
+  typeCounts = { ingress: 1, hash: 1, filter: 1 };
   addNode({
     id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
-    subtitle: "Telemetry source", x: 36, y: 88, locked: true,
+    subtitle: "Emits Packets", x: 16, y: 90, locked: true,
     buffer: makePackets()
   });
   addNode({
+    id: "filt1", type: "filter", title: "Integrity Filter 1",
+    subtitle: "Filter: entropy < 80", x: 210, y: 70, locked: false,
+    config: { field: "entropy", op: "lt", value: "80" }
+  });
+  addNode({
+    id: "hash_1", type: "hash", title: "Hash Mutator 1",
+    subtitle: "Mutate: crc16", x: 420, y: 70, locked: false,
+    config: { algo: "crc16", saltKey: "0x0313", xorSalt: "0x5A", outputTarget: "sessionToken" }
+  });
+  addNode({
     id: "gw1", type: "gateway", title: "SYS_SEC_GATEWAY",
-    subtitle: "Security: RESTRICTED [ENC]", x: 310, y: 56, locked: true
+    subtitle: "Security: RESTRICTED [ENC]", x: 640, y: 46, locked: true
   });
   addNode({
     id: "sigil", type: "sigil", title: "Sigil Synthesis Forge",
-    subtitle: "Checksum: 0x007F [LOCK…]", x: 680, y: 40, locked: true
+    subtitle: "Checksum: 0x007F [LOCK…]", x: 860, y: 30, locked: true
   });
   addNode({
     id: "burn", type: "incinerator", title: "Incinerator (Purge)",
-    subtitle: "Incinerates Packets", x: 310, y: 250, locked: false
+    subtitle: "Incinerates Packets", x: 640, y: 250, locked: false
   });
-  wires.push({ from: "ingress", fromPort: "out", to: "gw1", toPort: "in" });
-  selected = "gw1";
+  wires.push({ from: "ingress", fromPort: "out", to: "filt1", toPort: "in" });
+  wires.push({ from: "filt1", fromPort: "pass", to: "hash_1", toPort: "in" });
+  wires.push({ from: "filt1", fromPort: "fail", to: "burn", toPort: "in" });
+  wires.push({ from: "hash_1", fromPort: "out", to: "gw1", toPort: "in" });
+  wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
+  selected = "filt1";
   renderAll();
   logEl.innerHTML = "";
   log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
   log("sys", "Neural weave pipeline standing by for signal routing.");
   log("warn", "Anomalous signal patterns detected across ingress frequencies.");
   log("diag", "Awaiting weave logic and filter topology configuration.");
-  showInspector(nodes.find(n => n.id === "gw1"));
+  log("diag", "HARMONIC_COLLAPSE countermeasure armed: Integrity Filter at ingress (entropy < 80).");
+  showInspector(nodes.find(n => n.id === "filt1"));
 }
 
 function renderPalette() {
@@ -527,6 +546,7 @@ function showInspector(node) {
           <p class="hint">ID ${node.id} · [READ-ONLY ENCRYPTED NODE]</p>
         </div>
       </div>
+      <p class="hint">[KERNEL-LEVEL ENCRYPTION ENGAGED] Firewall protocols are signed by ARK_SEC_ROOT_0x313. Parameters are cryptographically locked and immutable.</p>
       <button class="btn btn-cyan" id="btn-propagate" style="width:100%;margin-bottom:10px">Propagate Data Flow</button>
       <div class="enc-box"><div class="k">🔒 ENCRYPTED · SECURITY LEVEL</div>
         <p>RESTRICTED // 0x7F4A_KERNEL_ENC<br>Policy: KERNEL_EXCEPTION_TRAP_MODE</p></div>
@@ -826,10 +846,17 @@ function step() {
     if (s.type === "filter") {
       const pass = pkts.filter(p => matches(p, s.cfg));
       const fail = pkts.filter(p => !matches(p, s.cfg));
-      outs(s.id, "pass").forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
-      outs(s.id, "fail").forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
-      if (!outs(s.id, "pass").length && !outs(s.id, "fail").length) node.buffer.push(...pkts);
-      log("sys", `${node.title}: pass ${pass.length} / fail ${fail.length}`);
+      const passW = outs(s.id, "pass");
+      const failW = outs(s.id, "fail");
+      passW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
+      failW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
+      if (!passW.length) node.buffer.push(...pass);
+      if (!failW.length && fail.length) {
+        const burn = nodes.find(n => n.type === "incinerator");
+        if (burn) burn.buffer.push(...fail.map(p => ({ ...p })));
+        else node.buffer.push(...fail);
+      }
+      log("sys", `${node.title}: pass ${pass.length} / stripped ${fail.length} high-entropy decoy(s) (entropy < 80).`);
       return;
     }
 
@@ -871,6 +898,9 @@ function step() {
 
     if (s.type === "sigil" || s.type === "incinerator") {
       node.buffer.push(...pkts);
+      if (s.type === "incinerator" && pkts.length) {
+        log("err", `INCINERATOR: Safely purged & vaporized ${pkts.length} decoy/tainted packet(s).`);
+      }
       return;
     }
 
