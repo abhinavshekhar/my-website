@@ -106,7 +106,9 @@
   .enc-box p { font-size: 10px; color: #d6dbe6; line-height: 1.4; }
   .hex { font-size: 9px; color: #7dd3fc; line-height: 1.5; word-break: break-all; }
   .wire-row { display: flex; justify-content: space-between; font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-  .insp-foot { display: flex; gap: 8px; margin-top: 12px; }
+  .pkt { font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .pkt b { color: var(--cyan); }
+  .ok-tag { color: #4ade80; }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .l-pipe { color: #67e8f9; }
 
@@ -325,17 +327,22 @@ function makePackets() {
   for (let i = 0; i < PACKET_N; i++) {
     const decoy = i < 78;
     const malicious = !decoy && i < 92;
+    const header = !decoy && !malicious && ((i - 92) % 2 === 0);
+    const role = decoy ? "DECOY" : (malicious ? "VECTOR" : (header ? "HEADER" : "BODY"));
     list.push({
       id: i,
-      freq: decoy ? 240 + (i % 9) : LUNAR_FREQ,
-      value: decoy ? "DECOY" : (malicious ? "VECTOR" : "LUNAR"),
+      hexId: "0x0313_" + String(i + 1).padStart(2, "0"),
+      freq: decoy ? 240 + (i % 9) : (malicious ? 480 : (header ? 313 : 626)),
+      value: role,
       payload: (i * 17 + 9) & 0xff,
       entropy: decoy ? 88 + (i % 12) : 12 + (i % 20),
+      status: decoy ? "DECOY" : (malicious ? "MALICIOUS" : "CLEAN"),
       decoy,
       malicious,
-      fused: !decoy && !malicious,
-      role: "fused",
-      delayedMs: 0,
+      fused: false,
+      role,
+      latencyMs: header ? 100 : (role === "BODY" ? 700 : 0),
+      delayedMs: header ? 100 : (role === "BODY" ? 700 : 0),
       aligned: false,
       xorApplied: false,
       maskApplied: false,
@@ -348,10 +355,10 @@ function makePackets() {
 
 function defaultConfig(type) {
   if (type === "filter") return { field: "entropy", op: "lt", value: "80" };
-  if (type === "hash") return { algo: "crc16", xorSalt: "0x5A" };
+  if (type === "hash") return { algo: "crc16", saltKey: "", xorSalt: "0x5A", outputTarget: "sessionToken" };
+  if (type === "branch") return { field: "role", op: "eq", value: "HEADER" };
   if (type === "transform") return { mask: "0xFF", extract: "none" };
   if (type === "delay") return { ms: 500 };
-  if (type === "branch") return { field: "value", op: "eq", value: "LUNAR" };
   if (type === "sorter") return { key: "id", dir: "asc" };
   if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
   return {};
@@ -540,21 +547,44 @@ function showInspector(node) {
     document.getElementById("insp-close").onclick = () => { selected = null; renderAll(); inspector.innerHTML = `<h3>NODE CONFIG</h3><p class="hint">Click a node to configure it.</p>`; };
     return;
   }
+  if (node.type === "hash") {
+    const preview = [];
+    const h = node.buffer.find(p => p.role === "HEADER" && p.status === "CLEAN");
+    const b = node.buffer.find(p => p.role === "BODY" && p.status === "CLEAN");
+    if (h) preview.push(h);
+    if (b) preview.push(b);
+    if (!preview.length) preview.push(...node.buffer.slice(0, 2));
+    const hidden = Math.max(0, node.buffer.length - preview.length);
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · ID hash_1 // [READ-ONLY ENCRYPTED NODE]</p>
+      ${preview.map(p => `<div class="pkt"><b>${p.hexId}</b> · <span class="ok-tag">${p.status}</span> · ${p.freq}Hz · ${p.role} · ${p.latencyMs || p.delayedMs || 0} ms</div>`).join("") || `<p class="hint">No packets buffered.</p>`}
+      ${hidden ? `<p class="hint">+ ${hidden} more packets hidden.</p>` : ""}
+      <button class="btn btn-cyan" id="btn-propagate" style="width:100%;margin:10px 0">Propagate Data Flow</button>
+      <div class="field"><label>Algorithm Mode</label>
+        <select data-k="algo"><option value="crc16">crc16</option><option value="xorSalt">xorSalt</option></select></div>
+      <div class="field"><label>Salt Key</label>
+        <input data-k="saltKey" placeholder="Secret Key / Salt" value="${node.config.saltKey || ""}"></div>
+      <div class="field"><label>Output Target</label>
+        <select data-k="outputTarget"><option value="sessionToken">sessionToken</option><option value="authKey">authKey</option><option value="appendToMetadata">appendToMetadata</option></select></div>
+      <p class="hint">CLEAN HEADER is 313Hz / 100ms. CLEAN BODY is 626Hz / 700ms. Split those roles, delay HEADER to 700ms, Stream Join. Salt 0x0313.</p>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    document.getElementById("btn-propagate").onclick = step;
+    return;
+  }
   const cfg = node.config || {};
   let fields = `<p class="hint">${node.title} · ${node.type}${node.locked ? " (locked on canvas)" : ""}</p>`;
   if (node.type === "filter" || node.type === "branch") {
     fields += `
       <div class="field"><label>Field</label>
-        <select data-k="field"><option>entropy</option><option>freq</option><option>value</option><option>payload</option><option>id</option></select></div>
+        <select data-k="field"><option>role</option><option>entropy</option><option>freq</option><option>status</option><option>value</option></select></div>
       <div class="field"><label>Operator</label>
         <select data-k="op"><option value="lt">less than</option><option value="gt">greater than</option><option value="eq">equals</option><option value="neq">not equals</option></select></div>
       <div class="field"><label>Match value</label><input data-k="value" value="${cfg.value ?? ""}"></div>`;
-  }
-  if (node.type === "hash") {
-    fields += `<div class="field"><label>Algorithm</label>
-        <select data-k="algo"><option value="crc16">crc16</option><option value="xorSalt">xorSalt</option></select></div>
-      <div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x5A"}"></div>
-      <p class="hint">crc16 stamps checksum 0x007F. xorSalt 0x5A does the same for lunar bytes.</p>`;
   }
   if (node.type === "transform") {
     fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>
@@ -695,7 +725,7 @@ function step() {
       const holdMs = Number(s.cfg.ms) || 500;
       const holds = Math.max(1, Math.ceil(holdMs / 500));
       pkts.forEach(p => {
-        const next = { ...p, wait: (p.wait || 0) + 1, delayedMs: (p.delayedMs || 0) + holdMs };
+        const next = { ...p, wait: (p.wait || 0) + 1, delayedMs: Math.max(p.delayedMs || 0, holdMs), latencyMs: Math.max(p.latencyMs || 0, holdMs) };
         if (next.wait >= holds) ready.push({ ...next, wait: 0 });
         else hold.push(next);
       });
@@ -723,42 +753,53 @@ function step() {
     }
 
     if (s.type === "hash") {
-      const algo = s.cfg.algo || "xorSalt";
+      const algo = s.cfg.algo || "crc16";
       const salt = parseHex(s.cfg.xorSalt, 0);
+      const key = (s.cfg.saltKey || "").trim().toLowerCase().replace(/^0x/, "");
+      const saltOk = key === "313" || key === "0313";
       if (algo === "xorSalt" && !salt) {
         node.buffer.push(...pkts);
-        log("diag", `${node.title} holding ${pkts.length} frame(s) — set xorSalt (try 0x5A) then Play.`);
+        log("diag", `${node.title} holding ${pkts.length} frame(s) — set xorSalt then Play.`);
         return;
       }
       pkts = pkts.map(p => ({
         ...p,
         payload: algo === "crc16" ? SIGIL_BYTE : (p.payload ^ salt),
-        xorApplied: true
+        xorApplied: true,
+        outputTarget: s.cfg.outputTarget || "sessionToken",
+        saltOk
       }));
       log("hash", `Mutated mask across ${pkts.length} frame(s) -> 0x007F.`);
     }
 
     if (s.type === "join" || s.type === "merge") {
-      const a = pkts.filter(p => p._in !== "in2");
-      const b = pkts.filter(p => p._in === "in2");
-      if (!a.length || !b.length) {
+      const portA = pkts.filter(p => p._in !== "in2");
+      const portB = pkts.filter(p => p._in === "in2");
+      if (!portA.length || !portB.length) {
         node.buffer.push(...pkts);
-        log("diag", `${node.title} waitForBoth — header ${a.length} / body ${b.length}.`);
+        log("diag", `${node.title} waitForBoth — pin A ${portA.length} / pin B ${portB.length}.`);
         return;
       }
-      const n = Math.min(a.length, b.length);
+      const headers = pkts.filter(p => String(p.role).toUpperCase() === "HEADER");
+      const bodies = pkts.filter(p => String(p.role).toUpperCase() === "BODY");
+      const n = Math.min(headers.length, bodies.length);
       const joined = [];
       for (let i = 0; i < n; i++) {
         joined.push({
-          ...a[i],
+          ...headers[i],
           aligned: true,
-          fused: false,
           role: "joined",
-          delayedMs: Math.max(a[i].delayedMs || 0, b[i].delayedMs || 0),
-          payload: SIGIL_BYTE
+          delayedMs: Math.max(headers[i].delayedMs || 0, bodies[i].delayedMs || 0),
+          latencyMs: Math.max(headers[i].latencyMs || 0, bodies[i].latencyMs || 0),
+          payload: SIGIL_BYTE,
+          outputTarget: headers[i].outputTarget || bodies[i].outputTarget,
+          saltOk: headers[i].saltOk && bodies[i].saltOk
         });
       }
-      const leftover = a.slice(n).concat(b.slice(n));
+      const leftover = headers.slice(n).concat(bodies.slice(n)).concat(pkts.filter(p => {
+        const r = String(p.role).toUpperCase();
+        return r !== "HEADER" && r !== "BODY";
+      }));
       node.buffer.push(...leftover);
       const next = outs(s.id, "out");
       if (next.length) next.forEach(w => deliver(joined, w.to, w.toPort));
@@ -859,8 +900,8 @@ function evaluate(sigil) {
   if (decoys.length) {
     log("err", `HARMONIC_COLLAPSE: Sigil Forge rejected ${decoys.length} tainted decoy frame(s). Ensure high-entropy decoys are filtered at ingress.`);
   }
-  const good = sigil.buffer.filter(p => !p.decoy && !p.malicious && p.aligned && (p.delayedMs || 0) >= 700 && p.payload === SIGIL_BYTE);
-  const need = makePackets().filter(p => p.fused).length;
+  const good = sigil.buffer.filter(p => !p.decoy && !p.malicious && p.aligned && (p.delayedMs || 0) >= 700 && p.payload === SIGIL_BYTE && p.outputTarget === "sessionToken" && p.saltOk);
+  const need = makePackets().filter(p => p.role === "HEADER").length;
   if (good.length >= need && !decoys.length && !incomplete.length) {
     won = true;
     pts += 250;
