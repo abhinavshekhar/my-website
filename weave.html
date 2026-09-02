@@ -243,7 +243,7 @@
       <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
     </div>
     <footer>
-      <span class="hint">Hint: click Hash Mutator, set xorSalt to 0x5A, then Play. gw1 only forwards checksum 0x007F.</span>
+      <span class="hint">Filter entropy &lt; 80, Hash crc16, gateway ERROR → Error Handler, fork HEADER/BODY, Delay 700ms, Stream Join, then Sigil.</span>
       <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
     </footer>
   </div>
@@ -309,11 +309,13 @@ function nid() { return "n" + (uid++); }
 function log(kind, msg) {
   const now = new Date();
   const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
+  const tags = {
+    pipe: "PIPELINE", in: "INGRESS", hash: "HASH_MUTATOR", gw: "SYS_SEC_GATEWAY",
+    err: "ERR", diag: "DIAGNOSTIC", warn: "WARNING", sys: "SYSTEM", ok: "OK"
+  };
   const row = document.createElement("div");
-  row.className = "l-" + kind;
-  const tag = kind === "pipe" ? "PIPELINE" : kind.toUpperCase();
-  row.textContent = `[${ts}] [${tag}] ${msg}`;
-  if (logMode === "tele" && kind !== "in" && kind !== "ok") return;
+  row.className = "l-" + (kind === "gw" || kind === "hash" ? "sys" : kind);
+  row.textContent = `[${ts}] [${tags[kind] || kind.toUpperCase()}] ${msg}`;
   logEl.appendChild(row);
   logEl.scrollTop = logEl.scrollHeight;
 }
@@ -321,29 +323,36 @@ function log(kind, msg) {
 function makePackets() {
   const list = [];
   for (let i = 0; i < PACKET_N; i++) {
-    const lunar = i % 6 === 0;
-    let payload = lunar ? (SIGIL_BYTE ^ XOR_SALT) : ((i * 17 + 9) & 0xff);
-    if (!lunar && ((payload ^ XOR_SALT) === SIGIL_BYTE || payload === SIGIL_BYTE)) payload ^= 1;
+    const decoy = i < 78;
+    const malicious = !decoy && i < 92;
     list.push({
       id: i,
-      freq: lunar ? LUNAR_FREQ : (40 + (i * 13) % 200),
-      value: lunar ? "LUNAR" : (i % 3 === 0 ? "SOLAR" : "DRIFT"),
-      payload,
+      freq: decoy ? 240 + (i % 9) : LUNAR_FREQ,
+      value: decoy ? "DECOY" : (malicious ? "VECTOR" : "LUNAR"),
+      payload: (i * 17 + 9) & 0xff,
+      entropy: decoy ? 88 + (i % 12) : 12 + (i % 20),
+      decoy,
+      malicious,
+      fused: !decoy && !malicious,
+      role: "fused",
+      delayedMs: 0,
+      aligned: false,
       xorApplied: false,
       maskApplied: false,
-      wait: 0
+      wait: 0,
+      _in: "in"
     });
   }
   return list;
 }
 
 function defaultConfig(type) {
-  if (type === "filter") return { field: "freq", op: "eq", value: String(LUNAR_FREQ) };
+  if (type === "filter") return { field: "entropy", op: "lt", value: "80" };
+  if (type === "hash") return { algo: "crc16", xorSalt: "0x5A" };
+  if (type === "transform") return { mask: "0xFF", extract: "none" };
+  if (type === "delay") return { ms: 500 };
   if (type === "branch") return { field: "value", op: "eq", value: "LUNAR" };
   if (type === "sorter") return { key: "id", dir: "asc" };
-  if (type === "transform") return { mask: "0xFF" };
-  if (type === "hash") return { xorSalt: "0x00" };
-  if (type === "delay") return { ms: 500 };
   if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
   return {};
 }
@@ -480,7 +489,7 @@ function nodeEl(node) {
   div.dataset.id = node.id;
   div.innerHTML = `
     <div class="node-head"><span>${node.title}</span><span>${node.locked ? "🔒" : ""}</span></div>
-    <div class="node-body">${node.subtitle}<div class="node-meta">Packets: ${node.buffer.length}</div></div>
+    <div class="node-body">${node.type === "hash" ? ("Mutate: " + (node.config.algo || "xorSalt")) : node.subtitle}<div class="node-meta">Packets: ${node.buffer.length}</div></div>
     <div class="ports-in">${p.in.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="in"></div>`).join("")}</div>
     <div class="ports-out">${p.out.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="out"></div>`).join("")}</div>
   `;
@@ -536,17 +545,21 @@ function showInspector(node) {
   if (node.type === "filter" || node.type === "branch") {
     fields += `
       <div class="field"><label>Field</label>
-        <select data-k="field"><option>freq</option><option>value</option><option>payload</option><option>id</option></select></div>
+        <select data-k="field"><option>entropy</option><option>freq</option><option>value</option><option>payload</option><option>id</option></select></div>
       <div class="field"><label>Operator</label>
-        <select data-k="op"><option value="eq">equals</option><option value="neq">not equals</option></select></div>
+        <select data-k="op"><option value="lt">less than</option><option value="gt">greater than</option><option value="eq">equals</option><option value="neq">not equals</option></select></div>
       <div class="field"><label>Match value</label><input data-k="value" value="${cfg.value ?? ""}"></div>`;
   }
   if (node.type === "hash") {
-    fields += `<div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x00"}"></div>
-      <p class="hint">Packets stay here until xorSalt is set. Use 0x5A so lunar frames become checksum 0x7F, then Play again.</p>`;
+    fields += `<div class="field"><label>Algorithm</label>
+        <select data-k="algo"><option value="crc16">crc16</option><option value="xorSalt">xorSalt</option></select></div>
+      <div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x5A"}"></div>
+      <p class="hint">crc16 stamps checksum 0x007F. xorSalt 0x5A does the same for lunar bytes.</p>`;
   }
   if (node.type === "transform") {
-    fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>`;
+    fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>
+      <div class="field"><label>Extract sub-frame</label>
+        <select data-k="extract"><option value="none">none</option><option value="header">HEADER</option><option value="body">BODY</option></select></div>`;
   }
   if (node.type === "sorter") {
     fields += `<div class="field"><label>Sort key</label><select data-k="key"><option>id</option><option>freq</option><option>payload</option></select></div>
@@ -554,10 +567,10 @@ function showInspector(node) {
   }
   if (node.type === "delay") {
     fields += `<div class="field"><label>Buffer latency (ms)</label><input data-k="ms" value="${cfg.ms || 500}"></div>
-      <p class="hint">500ms holds a packet for one extra Play step.</p>`;
+      <p class="hint">Phase alignment needs 700ms on one HEADER/BODY path before Stream Join.</p>`;
   }
   if (node.type === "sigil") {
-    fields += `<p class="hint">Accepts only lunar packets whose transformed checksum byte is 0x007F. Contaminated streams refuse synthesis.</p>`;
+    fields += `<p class="hint">Needs reunified HEADER+BODY (Stream Join waitForBoth), 700ms phase delay, no high-entropy decoys, checksum 0x007F.</p>`;
   }
   inspector.innerHTML = `<h3>NODE CONFIG</h3>${fields}`;
   inspector.querySelectorAll("[data-k]").forEach(el => {
@@ -623,7 +636,7 @@ canvas.addEventListener("mouseup", e => {
     const from = connecting.from, fromPort = connecting.fromPort;
     const to = port.dataset.node, toPort = port.dataset.port;
     if (from !== to) {
-      wires = wires.filter(w => !(w.from === from && w.fromPort === fromPort));
+      wires = wires.filter(w => !(w.from === from && w.fromPort === fromPort && w.to === to && w.toPort === toPort));
       wires.push({ from, fromPort, to, toPort });
       log("sys", `Wired ${from}:${fromPort} → ${to}:${toPort}`);
       renderAll();
@@ -649,18 +662,21 @@ function matches(pkt, cfg) {
   const field = cfg.field || "freq";
   let left = pkt[field];
   let right = cfg.value;
-  if (field === "freq" || field === "payload" || field === "id") right = Number(right);
+  if (field === "freq" || field === "payload" || field === "id" || field === "entropy") right = Number(right);
+  const op = cfg.op || "eq";
+  if (op === "lt") return Number(left) < Number(right);
+  if (op === "gt") return Number(left) > Number(right);
   const eq = left == right;
-  return (cfg.op || "eq") === "neq" ? !eq : eq;
+  return op === "neq" ? !eq : eq;
 }
 
 function outs(nodeId, port) {
   return wires.filter(w => w.from === nodeId && w.fromPort === port);
 }
 
-function deliver(list, nodeId) {
+function deliver(list, nodeId, toPort) {
   const n = nodes.find(x => x.id === nodeId);
-  if (n) n.buffer.push(...list);
+  if (n) n.buffer.push(...list.map(p => ({ ...p, _in: toPort || p._in || "in" })));
 }
 
 function step() {
@@ -676,9 +692,11 @@ function step() {
     if (s.type === "delay") {
       const hold = [];
       const ready = [];
+      const holdMs = Number(s.cfg.ms) || 500;
+      const holds = Math.max(1, Math.ceil(holdMs / 500));
       pkts.forEach(p => {
-        const next = { ...p, wait: (p.wait || 0) + 1 };
-        if (next.wait > 1) ready.push({ ...next, wait: 0 });
+        const next = { ...p, wait: (p.wait || 0) + 1, delayedMs: (p.delayedMs || 0) + holdMs };
+        if (next.wait >= holds) ready.push({ ...next, wait: 0 });
         else hold.push(next);
       });
       node.buffer.push(...hold);
@@ -694,23 +712,58 @@ function step() {
 
     if (s.type === "transform") {
       const mask = parseHex(s.cfg.mask, 0xff);
-      pkts = pkts.map(p => ({ ...p, payload: p.payload & mask, maskApplied: true }));
+      const extract = s.cfg.extract || "none";
+      pkts = pkts.map(p => ({
+        ...p,
+        payload: p.payload & mask,
+        maskApplied: true,
+        role: extract === "none" ? p.role : extract,
+        fused: extract === "none" ? p.fused : false
+      }));
     }
 
     if (s.type === "hash") {
+      const algo = s.cfg.algo || "xorSalt";
       const salt = parseHex(s.cfg.xorSalt, 0);
-      if (!salt) {
+      if (algo === "xorSalt" && !salt) {
         node.buffer.push(...pkts);
         log("diag", `${node.title} holding ${pkts.length} frame(s) — set xorSalt (try 0x5A) then Play.`);
         return;
       }
-      pkts = pkts.map(p => ({ ...p, payload: p.payload ^ salt, xorApplied: salt === XOR_SALT }));
+      pkts = pkts.map(p => ({
+        ...p,
+        payload: algo === "crc16" ? SIGIL_BYTE : (p.payload ^ salt),
+        xorApplied: true
+      }));
+      log("hash", `Mutated mask across ${pkts.length} frame(s) -> 0x007F.`);
     }
 
     if (s.type === "join" || s.type === "merge") {
+      const a = pkts.filter(p => p._in !== "in2");
+      const b = pkts.filter(p => p._in === "in2");
+      if (!a.length || !b.length) {
+        node.buffer.push(...pkts);
+        log("diag", `${node.title} waitForBoth — header ${a.length} / body ${b.length}.`);
+        return;
+      }
+      const n = Math.min(a.length, b.length);
+      const joined = [];
+      for (let i = 0; i < n; i++) {
+        joined.push({
+          ...a[i],
+          aligned: true,
+          fused: false,
+          role: "joined",
+          delayedMs: Math.max(a[i].delayedMs || 0, b[i].delayedMs || 0),
+          payload: SIGIL_BYTE
+        });
+      }
+      const leftover = a.slice(n).concat(b.slice(n));
+      node.buffer.push(...leftover);
       const next = outs(s.id, "out");
-      if (pkts.length && next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
-      else node.buffer.push(...pkts);
+      if (next.length) next.forEach(w => deliver(joined, w.to, w.toPort));
+      else node.buffer.push(...joined);
+      log("sys", `${node.title} reunified ${joined.length} HEADER/BODY pair(s).`);
       return;
     }
 
@@ -723,8 +776,8 @@ function step() {
     if (s.type === "fork") {
       const a = outs(s.id, "out");
       const b = outs(s.id, "out2");
-      a.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
-      b.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+      a.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
+      b.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
       if (!a.length && !b.length) node.buffer.push(...pkts);
       return;
     }
@@ -732,16 +785,16 @@ function step() {
     if (s.type === "filter") {
       const pass = pkts.filter(p => matches(p, s.cfg));
       const fail = pkts.filter(p => !matches(p, s.cfg));
-      outs(s.id, "pass").forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
-      outs(s.id, "fail").forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
+      outs(s.id, "pass").forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "fail").forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
       if (!outs(s.id, "pass").length && !outs(s.id, "fail").length) node.buffer.push(...pkts);
       log("sys", `${node.title}: pass ${pass.length} / fail ${fail.length}`);
       return;
     }
 
     if (s.type === "gateway") {
-      const pass = pkts.filter(p => matches(p, s.cfg));
-      const fail = pkts.filter(p => !matches(p, s.cfg));
+      const pass = pkts.filter(p => !p.malicious);
+      const fail = pkts.filter(p => p.malicious);
       const outW = outs(s.id, "out");
       const errW = outs(s.id, "error");
       if (!outW.length && !errW.length) {
@@ -750,8 +803,8 @@ function step() {
         log("warn", "SYS_SEC_GATEWAY trap: OUT and ERROR disconnected. Packets held.");
         return;
       }
-      outW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
-      errW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
+      outW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
+      errW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to, w.toPort));
       if (!outW.length) node.buffer.push(...pass);
       if (!errW.length && fail.length) {
         const burn = nodes.find(n => n.type === "incinerator");
@@ -762,15 +815,16 @@ function step() {
       } else if (!errW.length) {
         node.buffer.push(...fail);
       }
-      log("pipe", `gw1 KERNEL_EXCEPTION_TRAP_MODE · checksum 0x007F · OUT ${pass.length} · ERROR ${fail.length}`);
+      log("gw", `Security clearance verified (Level: KERNEL_RESTRICTED). Forwarded ${pass.length} clean frame(s).`);
+      if (fail.length) log("gw", `SECURITY DUMP: Redirected ${fail.length} malicious vector(s) to error pin.`);
       return;
     }
 
     if (s.type === "branch") {
       const t = pkts.filter(p => matches(p, s.cfg));
       const f = pkts.filter(p => !matches(p, s.cfg));
-      outs(s.id, "true").forEach(w => deliver(t.map(p => ({ ...p })), w.to));
-      outs(s.id, "false").forEach(w => deliver(f.map(p => ({ ...p })), w.to));
+      outs(s.id, "true").forEach(w => deliver(t.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "false").forEach(w => deliver(f.map(p => ({ ...p })), w.to, w.toPort));
       return;
     }
 
@@ -780,44 +834,40 @@ function step() {
     }
 
     const next = outs(s.id, "out");
-    if (next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+    if (next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to, w.toPort));
     else node.buffer.push(...pkts);
   });
 
   const sigil = nodes.find(n => n.type === "sigil");
   const burn = nodes.find(n => n.type === "incinerator");
   const gw = nodes.find(n => n.id === "gw1");
-  if (tick === 1) {
-    log("pipe", "Propagating pipeline upstream of node gw1...");
-    log("in", "ARK_INGRESS_01 dispatched 200 telemetry frame(s) into pipeline.");
-  }
-  log("in", `Step ${tick} · gw1 ${gw.buffer.length} · forge ${sigil.buffer.length} · incinerator ${burn.buffer.length}`);
   evaluate(sigil);
   renderAll();
-  if (selected) showInspector(nodes.find(n => n.id === selected));
+  if (selected) {
+    const n = nodes.find(n => n.id === selected);
+    if (n) showInspector(n);
+  }
 }
 
 function evaluate(sigil) {
   if (won || !sigil.buffer.length) return;
-  const lunar = sigil.buffer.filter(p => p.freq === LUNAR_FREQ && p.payload === SIGIL_BYTE);
-  const junk = sigil.buffer.length - lunar.length;
-  if (junk) {
-    log("err", `Forge contaminated (${junk} invalid). Checksum lock holds at 0x007F.`);
-    pts = Math.max(0, pts - 5);
-    return;
+  const decoys = sigil.buffer.filter(p => p.decoy);
+  const incomplete = sigil.buffer.filter(p => !p.decoy && !p.aligned);
+  if (incomplete.length) {
+    log("err", `PAYLOAD_INCOMPLETE: Sigil Forge rejected ${incomplete.length} raw sub-frame(s). HEADER and BODY sub-frames must be split, phase-aligned (700ms delay), and reunified via Stream Join.`);
   }
-  const need = nodes.find(n => n.type === "ingress");
-  const expected = (need && false) || Math.floor(PACKET_N / 6) + (PACKET_N % 6 === 0 ? 0 : 1);
-  const lunarTotal = makePackets().filter(p => p.freq === LUNAR_FREQ).length;
-  if (lunar.length >= lunarTotal && lunar.every(p => p.xorApplied || p.payload === SIGIL_BYTE)) {
+  if (decoys.length) {
+    log("err", `HARMONIC_COLLAPSE: Sigil Forge rejected ${decoys.length} tainted decoy frame(s). Ensure high-entropy decoys are filtered at ingress.`);
+  }
+  const good = sigil.buffer.filter(p => !p.decoy && !p.malicious && p.aligned && (p.delayedMs || 0) >= 700 && p.payload === SIGIL_BYTE);
+  const need = makePackets().filter(p => p.fused).length;
+  if (good.length >= need && !decoys.length && !incomplete.length) {
     won = true;
     pts += 250;
     document.getElementById("win-detail").textContent =
-      `${lunar.length} lunar packets aligned. Checksum 0x007F verified. AEON Survival Mode loosened on Sector 01.`;
+      `${good.length} HEADER/BODY pairs phase-aligned. Checksum 0x007F. SIGIL I — LUNAR synthesized.`;
     document.getElementById("win").classList.add("show");
     log("ok", "SIGIL I — LUNAR synthesized. Checksum 0x007F accepted.");
-  } else if (lunar.length) {
-    log("warn", `Partial glyph: ${lunar.length}/${lunarTotal} lunar checksums at the forge. Keep stepping or reload after wiring.`);
   }
 }
 
