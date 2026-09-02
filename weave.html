@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Weave — Round 01 // Sigil I Lunar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080d;
+    --panel: #0e1118;
+    --panel-2: #141824;
+    --line: rgba(56, 189, 248, 0.16);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.12);
+    --green: #4ade80;
+    --red: #f43f5e;
+    --violet: #c084fc;
+    --amber: #fbbf24;
+    --text: #e8eef7;
+    --muted: #8b95a8;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --display: Syne, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overflow: hidden; }
+  button { font-family: inherit; cursor: pointer; }
+  #app { display: grid; grid-template-rows: 52px 1fr 148px; height: 100%; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0 14px; border-bottom: 1px solid var(--line); background: #0b0e14;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand h1 { font-family: var(--display); font-size: 18px; letter-spacing: 0.04em; }
+  .chip {
+    border: 1px solid var(--line); background: var(--cyan-dim); color: var(--cyan);
+    padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  }
+  .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    padding: 7px 11px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  }
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn-cyan { border-color: rgba(34,211,238,0.45); color: var(--cyan); }
+  .btn-play { width: 36px; height: 36px; border-radius: 50%; background: #0f3; color: #04120a; border: 0; font-size: 14px; }
+  .btn-icon { width: 34px; height: 34px; border-radius: 8px; }
+  .pts { color: var(--amber); font-weight: 700; font-size: 12px; padding: 0 6px; }
+
+  .workspace { display: grid; grid-template-columns: 250px 1fr 280px; min-height: 0; }
+  .palette, .inspector {
+    background: var(--panel); border-right: 1px solid var(--line); overflow: auto; padding: 12px;
+  }
+  .inspector { border-right: 0; border-left: 1px solid var(--line); }
+  .pal-kicker { font-size: 10px; letter-spacing: 0.14em; color: var(--muted); margin: 12px 0 8px; }
+  .pal-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 6px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); cursor: grab;
+  }
+  .pal-item:active { cursor: grabbing; }
+  .pal-item small { display: block; color: var(--muted); font-size: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  #canvas-wrap { position: relative; min-width: 0; background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
+    #080a10;
+  }
+  #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .node {
+    position: absolute; width: 210px; background: #12151e; border: 1px solid #2a3344;
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); user-select: none;
+  }
+  .node.selected { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
+  .node.locked { outline: 1px dashed rgba(244,63,94,0.35); }
+  .node.sigil { outline: 1px dashed rgba(34,211,238,0.35); }
+  .node-head { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px 4px; font-size: 11px; font-weight: 700; }
+  .node-body { padding: 0 10px 10px; font-size: 10px; color: var(--muted); }
+  .node-meta { margin-top: 6px; color: var(--cyan); }
+  .ports-in, .ports-out { position: absolute; top: 28px; display: flex; flex-direction: column; gap: 14px; }
+  .ports-in { left: -7px; } .ports-out { right: -7px; }
+  .port {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid #041016; pointer-events: auto;
+    cursor: crosshair;
+  }
+  .port.cyan { background: var(--cyan); }
+  .port.green { background: var(--green); }
+  .port.red { background: var(--red); }
+  .port.violet { background: var(--violet); }
+
+  .inspector h3 { font-size: 12px; margin-bottom: 10px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; background: #0b0e14; border: 1px solid var(--line); color: var(--text);
+    padding: 7px 8px; border-radius: 6px; font-family: inherit; font-size: 12px;
+  }
+  .hint { font-size: 10px; color: var(--muted); line-height: 1.45; }
+
+  .bottom {
+    border-top: 1px solid var(--line); background: #0b0e14; display: flex; flex-direction: column; min-height: 0;
+  }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); }
+  .tab { padding: 8px 14px; background: none; border: 0; color: var(--muted); font-size: 11px; }
+  .tab.active { color: var(--cyan); border-bottom: 2px solid var(--cyan); }
+  #log { flex: 1; overflow: auto; padding: 8px 14px; font-size: 11px; line-height: 1.55; }
+  .l-in { color: var(--cyan); } .l-sys { color: #9aa7be; } .l-warn { color: var(--amber); }
+  .l-ok { color: var(--green); } .l-err { color: var(--red); } .l-diag { color: #eab308; }
+
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 20px;
+  }
+  .modal-back.hidden { display: none; }
+  .modal {
+    width: min(720px, 100%); background: #0e121a; border: 1px solid var(--cyan); border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .modal header { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 18px 8px; }
+  .modal header .sub { color: var(--cyan); font-size: 11px; margin-top: 4px; }
+  .modal .close { background: none; border: 0; color: var(--muted); font-size: 18px; }
+  .modal .body { padding: 8px 18px 18px; }
+  .brief-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+  .badge { border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; font-size: 10px; }
+  .badge.obj { border-color: var(--cyan); color: var(--cyan); }
+  .story { color: #c9d3e3; font-size: 13px; line-height: 1.6; }
+  .story em { color: var(--cyan); font-style: normal; }
+  .steps { display: grid; gap: 8px; }
+  .step { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .step b { display: block; margin-bottom: 4px; font-size: 12px; }
+  .step p { color: var(--muted); font-size: 11px; line-height: 1.45; }
+  .modal footer { display: flex; justify-content: space-between; align-items: center; padding: 0 18px 16px; }
+  .win {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.75); z-index: 60;
+  }
+  .win.show { display: flex; }
+  .win-card { text-align: center; padding: 28px; border: 1px solid var(--cyan); border-radius: 16px; background: #0c1118; }
+  .win-card h2 { font-family: var(--display); margin-bottom: 8px; }
+  @media (max-width: 980px) {
+    .workspace { grid-template-columns: 1fr; }
+    .palette, .inspector { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>The Weave</h1>
+      <span class="chip" id="profile-chip">Bazinga</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btn-reload">Reload 200 Pkts</button>
+      <span class="pts" id="pts">0 PTS</span>
+      <button class="btn" id="btn-reset">Reset Round 1</button>
+      <button class="btn btn-icon" id="btn-help" title="Directive">⚙</button>
+      <button class="btn-play" id="btn-play" title="Step execution">▶</button>
+      <a class="btn btn-icon" href="index.html" title="Exit">✕</a>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="palette" id="palette"></aside>
+    <div id="canvas-wrap">
+      <svg id="wires"></svg>
+    </div>
+    <aside class="inspector" id="inspector">
+      <h3>NODE CONFIG</h3>
+      <p class="hint">Click a node to configure filter keys, XOR salt, branch rules, sort order, or delay.</p>
+    </aside>
+  </div>
+
+  <div class="bottom">
+    <div class="tabs">
+      <button class="tab active" data-tab="logs">Logs</button>
+      <button class="tab" data-tab="tele">Telemetry</button>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<div class="modal-back" id="brief-modal">
+  <div class="modal">
+    <header>
+      <div>
+        <strong>CLASSIFIED DIRECTIVE // SECTOR 01 // PERIMETER_SUBNET</strong>
+        <div class="sub">TRANSMISSION DECRYPTED • LIVE DOSSIER</div>
+      </div>
+      <button class="close" data-close="brief-modal">✕</button>
+    </header>
+    <div class="body">
+      <div class="brief-row">
+        <span class="badge">ROUND 01</span>
+        <strong style="font-family:var(--display);font-size:22px">The Weave</strong>
+        <span class="badge">CLEARANCE: LEVEL-1 INGRESS // BREACH PROTOCOL</span>
+        <span class="badge obj">OBJECTIVE: SYNTHESIZE [SIGIL I - LUNAR]</span>
+      </div>
+      <div class="story">
+        ARCHIVE_DECRYPTION_STREAM // LOG_01<br><br>
+        You have breached the outermost boundary of the <em>ARK</em>, humanity’s vast digital sanctuary.
+        Before you lies <em>The Weave</em>, a fractured processing network of severed threads, abandoned commands,
+        and corrupted pathways. <em>AEON</em>’s emergency <em>Survival Mode</em> has locked down the system,
+        and your objective is to navigate the broken network and locate the first <em>Sigil</em>.
+        Trust nothing you see, as not every open route leads where it claims. Reconstruct the path before the
+        <em>ARK</em> permanently isolates itself forever.
+      </div>
+    </div>
+    <footer>
+      <span class="sub">DECRYPTION COMPLETE // READY</span>
+      <button class="btn btn-cyan" id="init-protocol">▶ INITIALIZE PROTOCOL</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="how-modal">
+  <div class="modal">
+    <header>
+      <div>
+        <strong>ROUND 1: THE WEAVE // DIRECTIVE</strong>
+        <div class="sub">Pipeline Construction &amp; Execution Instructions</div>
+      </div>
+      <button class="close" data-close="how-modal">✕</button>
+    </header>
+    <div class="body steps">
+      <div class="step"><b>01 — Drag &amp; Drop Node Blocks</b><p>Drag Sources, Filters, Branches, Transformers, Sorters, Delays from the left palette onto the canvas.</p></div>
+      <div class="step"><b>02 — Connect &amp; Wire Ports</b><p>Drag from an output pin (right) to an input pin (left). Double-click a pin to sever its wires.</p></div>
+      <div class="step"><b>03 — Configure Node Logic</b><p>Click a node to open the right sidebar. Set freq filters, XOR salt <code>0x5A</code>, mask, branch keys, or delay.</p></div>
+      <div class="step"><b>04 — Step Execution (Play ▶)</b><p>Each click advances active buffered packets forward by exactly one node along wired connections.</p></div>
+      <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
+    </div>
+    <footer>
+      <span class="hint">Hint: lunar packets broadcast on freq 137. Glyph lock expects checksum 0x007F after XOR salt 0x5A. Dump rejects in the incinerator.</span>
+      <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
+    </footer>
+  </div>
+</div>
+
+<div class="win" id="win">
+  <div class="win-card">
+    <div class="sub">SIGIL I — LUNAR</div>
+    <h2>SYNTHESIS COMPLETE</h2>
+    <p id="win-detail" class="hint"></p>
+    <button class="btn btn-cyan" id="win-close" style="margin-top:14px">Continue</button>
+  </div>
+</div>
+
+<script>
+const XOR_SALT = 0x5A;
+const LUNAR_FREQ = 137;
+const SIGIL_BYTE = 0x7F;
+const PACKET_N = 200;
+
+const PALETTE = [
+  { group: "TRIGGERS / SOURCES", items: [
+    { type: "ingress", name: "ARK Ingress", desc: "Emits Packets", color: "#22d3ee" }
+  ]},
+  { group: "LOGIC & ROUTING", items: [
+    { type: "filter", name: "Integrity Filter", desc: "Filter: freq equals", color: "#4ade80" },
+    { type: "branch", name: "Conditional Branch", desc: "Branch: valueMatch", color: "#c084fc" },
+    { type: "sorter", name: "Sequence Sorter", desc: "Sorts: nodeId", color: "#22d3ee" }
+  ]},
+  { group: "DATA PROCESSING", items: [
+    { type: "transform", name: "Byte Transformer", desc: "Transform: mask", color: "#f472b6" },
+    { type: "hash", name: "Hash Mutator", desc: "Mutate: xorSalt", color: "#fbbf24" },
+    { type: "delay", name: "Delay Buffer", desc: "Delay: 500ms", color: "#94a3b8" }
+  ]}
+];
+
+let nodes = [];
+let wires = [];
+let selected = null;
+let connecting = null;
+let drag = null;
+let pts = 0;
+let tick = 0;
+let won = false;
+let uid = 1;
+let logMode = "logs";
+
+const canvas = document.getElementById("canvas-wrap");
+const svg = document.getElementById("wires");
+const logEl = document.getElementById("log");
+const inspector = document.getElementById("inspector");
+
+function nid() { return "n" + (uid++); }
+
+function log(kind, msg) {
+  const now = new Date();
+  const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
+  const row = document.createElement("div");
+  row.className = "l-" + kind;
+  row.textContent = `[${ts}] [${kind.toUpperCase()}] ${msg}`;
+  if (logMode === "tele" && kind !== "in" && kind !== "ok") return;
+  logEl.appendChild(row);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function makePackets() {
+  const list = [];
+  for (let i = 0; i < PACKET_N; i++) {
+    const lunar = i % 6 === 0;
+    const payload = lunar ? (SIGIL_BYTE ^ XOR_SALT) : ((i * 17 + 9) & 0xff);
+    list.push({
+      id: i,
+      freq: lunar ? LUNAR_FREQ : (40 + (i * 13) % 200),
+      value: lunar ? "LUNAR" : (i % 3 === 0 ? "SOLAR" : "DRIFT"),
+      payload,
+      xorApplied: false,
+      maskApplied: false,
+      wait: 0
+    });
+  }
+  return list;
+}
+
+function defaultConfig(type) {
+  if (type === "filter") return { field: "freq", op: "eq", value: String(LUNAR_FREQ) };
+  if (type === "branch") return { field: "value", op: "eq", value: "LUNAR" };
+  if (type === "sorter") return { key: "id", dir: "asc" };
+  if (type === "transform") return { mask: "0xFF" };
+  if (type === "hash") return { xorSalt: "0x00" };
+  if (type === "delay") return { ms: 500 };
+  if (type === "gateway") return { field: "freq", op: "eq", value: String(LUNAR_FREQ) };
+  return {};
+}
+
+function portsFor(type) {
+  if (type === "ingress") return { in: [], out: [{ id: "out", color: "cyan" }] };
+  if (type === "incinerator" || type === "sigil") return { in: [{ id: "in", color: "cyan" }], out: [] };
+  if (type === "filter" || type === "gateway") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "pass", color: "green" }, { id: "fail", color: "red" }]
+  };
+  if (type === "branch") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "true", color: "cyan" }, { id: "false", color: "violet" }]
+  };
+  return { in: [{ id: "in", color: "cyan" }], out: [{ id: "out", color: "cyan" }] };
+}
+
+function addNode(partial) {
+  const type = partial.type;
+  const node = {
+    id: partial.id || nid(),
+    type,
+    title: partial.title,
+    subtitle: partial.subtitle,
+    x: partial.x, y: partial.y,
+    locked: !!partial.locked,
+    buffer: partial.buffer || [],
+    config: partial.config || defaultConfig(type)
+  };
+  nodes.push(node);
+  return node;
+}
+
+function resetRound() {
+  nodes = [];
+  wires = [];
+  selected = null;
+  connecting = null;
+  won = false;
+  tick = 0;
+  uid = 1;
+  addNode({
+    id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
+    subtitle: "Telemetry source", x: 40, y: 70, locked: true,
+    buffer: makePackets()
+  });
+  addNode({
+    id: "gateway", type: "gateway", title: "SYS_SEC_GATEWAY",
+    subtitle: "Security: RESTRICTED [E…]", x: 330, y: 40, locked: true
+  });
+  addNode({
+    id: "sigil", type: "sigil", title: "Sigil Synthesis Forge",
+    subtitle: "Checksum: 0x007F [LOCK…]", x: 640, y: 40, locked: true
+  });
+  addNode({
+    id: "burn", type: "incinerator", title: "Incinerator (Purge)",
+    subtitle: "Incinerates Packets", x: 640, y: 220, locked: true
+  });
+  renderAll();
+  logEl.innerHTML = "";
+  log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
+  log("sys", "Neural weave pipeline standing by for signal routing.");
+  log("warn", "Anomalous signal patterns detected across ingress frequencies.");
+  log("diag", "Awaiting weave logic and filter topology configuration.");
+}
+
+function renderPalette() {
+  const el = document.getElementById("palette");
+  el.innerHTML = PALETTE.map(g =>
+    `<div class="pal-kicker">${g.group}</div>` +
+    g.items.map(it => `
+      <div class="pal-item" draggable="true" data-type="${it.type}">
+        <span class="dot" style="background:${it.color}"></span>
+        <div><div>${it.name}</div><small>${it.desc}</small></div>
+      </div>`).join("")
+  ).join("");
+  el.querySelectorAll(".pal-item").forEach(item => {
+    item.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("type", item.dataset.type);
+    });
+  });
+}
+
+canvas.addEventListener("dragover", e => e.preventDefault());
+canvas.addEventListener("drop", e => {
+  e.preventDefault();
+  const type = e.dataTransfer.getData("type");
+  if (!type) return;
+  const rect = canvas.getBoundingClientRect();
+  const spec = PALETTE.flatMap(g => g.items).find(i => i.type === type);
+  addNode({
+    type,
+    title: spec.name.toUpperCase().replace(/ /g, "_"),
+    subtitle: spec.desc,
+    x: e.clientX - rect.left - 90,
+    y: e.clientY - rect.top - 20
+  });
+  renderAll();
+  log("sys", `Node ${spec.name} dropped onto the weave.`);
+});
+
+function portEls(node) {
+  return portsFor(node.type);
+}
+
+function nodeEl(node) {
+  const p = portEls(node);
+  const div = document.createElement("div");
+  div.className = "node" + (selected === node.id ? " selected" : "") + (node.locked && node.type === "gateway" ? " locked" : "") + (node.type === "sigil" ? " sigil" : "");
+  div.style.left = node.x + "px";
+  div.style.top = node.y + "px";
+  div.dataset.id = node.id;
+  div.innerHTML = `
+    <div class="node-head"><span>${node.title}</span><span>${node.locked ? "🔒" : ""}</span></div>
+    <div class="node-body">${node.subtitle}<div class="node-meta">Packets: ${node.buffer.length}</div></div>
+    <div class="ports-in">${p.in.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="in"></div>`).join("")}</div>
+    <div class="ports-out">${p.out.map(pt => `<div class="port ${pt.color}" data-node="${node.id}" data-port="${pt.id}" data-dir="out"></div>`).join("")}</div>
+  `;
+  div.addEventListener("mousedown", e => {
+    if (e.target.classList.contains("port")) return;
+    selected = node.id;
+    drag = { id: node.id, dx: e.clientX - node.x, dy: e.clientY - node.y };
+    renderAll();
+    showInspector(node);
+  });
+  return div;
+}
+
+function showInspector(node) {
+  const cfg = node.config || {};
+  let fields = `<p class="hint">${node.title} · ${node.type}${node.locked ? " (locked on canvas)" : ""}</p>`;
+  if (node.type === "filter" || node.type === "gateway" || node.type === "branch") {
+    fields += `
+      <div class="field"><label>Field</label>
+        <select data-k="field"><option>freq</option><option>value</option><option>payload</option><option>id</option></select></div>
+      <div class="field"><label>Operator</label>
+        <select data-k="op"><option value="eq">equals</option><option value="neq">not equals</option></select></div>
+      <div class="field"><label>Match value</label><input data-k="value" value="${cfg.value ?? ""}"></div>`;
+  }
+  if (node.type === "hash") {
+    fields += `<div class="field"><label>xorSalt (hex)</label><input data-k="xorSalt" value="${cfg.xorSalt || "0x00"}"></div>
+      <p class="hint">Lunar glyph lock opens when payload XOR salt equals 0x7F. Try 0x5A.</p>`;
+  }
+  if (node.type === "transform") {
+    fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>`;
+  }
+  if (node.type === "sorter") {
+    fields += `<div class="field"><label>Sort key</label><select data-k="key"><option>id</option><option>freq</option><option>payload</option></select></div>
+      <div class="field"><label>Direction</label><select data-k="dir"><option value="asc">asc</option><option value="desc">desc</option></select></div>`;
+  }
+  if (node.type === "delay") {
+    fields += `<div class="field"><label>Buffer latency (ms)</label><input data-k="ms" value="${cfg.ms || 500}"></div>
+      <p class="hint">500ms holds a packet for one extra Play step.</p>`;
+  }
+  if (node.type === "sigil") {
+    fields += `<p class="hint">Accepts only lunar packets whose transformed checksum byte is 0x007F. Contaminated streams refuse synthesis.</p>`;
+  }
+  inspector.innerHTML = `<h3>NODE CONFIG</h3>${fields}`;
+  inspector.querySelectorAll("[data-k]").forEach(el => {
+    if (el.tagName === "SELECT") el.value = cfg[el.dataset.k] ?? el.value;
+    el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+    el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+  });
+}
+
+function wirePath(a, b) {
+  const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
+  const c = Math.max(40, Math.abs(x2 - x1) * 0.45);
+  return `M ${x1} ${y1} C ${x1 + c} ${y1}, ${x2 - c} ${y2}, ${x2} ${y2}`;
+}
+
+function portCenter(nodeId, portId, dir) {
+  const el = canvas.querySelector(`.port[data-node="${nodeId}"][data-port="${portId}"][data-dir="${dir}"]`);
+  if (!el) return { x: 0, y: 0 };
+  const cr = canvas.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return { x: r.left - cr.left + r.width / 2, y: r.top - cr.top + r.height / 2 };
+}
+
+function drawWires() {
+  const r = canvas.getBoundingClientRect();
+  svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+  svg.innerHTML = wires.map(w => {
+    const a = portCenter(w.from, w.fromPort, "out");
+    const b = portCenter(w.to, w.toPort, "in");
+    return `<path d="${wirePath(a,b)}" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.85"/>`;
+  }).join("");
+}
+
+function renderAll() {
+  [...canvas.querySelectorAll(".node")].forEach(n => n.remove());
+  nodes.forEach(n => canvas.appendChild(nodeEl(n)));
+  requestAnimationFrame(drawWires);
+  document.getElementById("pts").textContent = pts + " PTS";
+}
+
+window.addEventListener("mousemove", e => {
+  if (!drag) return;
+  const node = nodes.find(n => n.id === drag.id);
+  node.x = e.clientX - drag.dx;
+  node.y = e.clientY - drag.dy;
+  const el = canvas.querySelector(`.node[data-id="${node.id}"]`);
+  if (el) { el.style.left = node.x + "px"; el.style.top = node.y + "px"; }
+  drawWires();
+});
+window.addEventListener("mouseup", () => { drag = null; });
+
+canvas.addEventListener("mousedown", e => {
+  const port = e.target.closest(".port");
+  if (!port) return;
+  e.stopPropagation();
+  if (port.dataset.dir === "out") {
+    connecting = { from: port.dataset.node, fromPort: port.dataset.port };
+  }
+});
+canvas.addEventListener("mouseup", e => {
+  const port = e.target.closest(".port");
+  if (connecting && port && port.dataset.dir === "in") {
+    const from = connecting.from, fromPort = connecting.fromPort;
+    const to = port.dataset.node, toPort = port.dataset.port;
+    if (from !== to) {
+      wires = wires.filter(w => !(w.from === from && w.fromPort === fromPort));
+      wires.push({ from, fromPort, to, toPort });
+      log("sys", `Wired ${from}:${fromPort} → ${to}:${toPort}`);
+      renderAll();
+    }
+  }
+  connecting = null;
+});
+canvas.addEventListener("dblclick", e => {
+  const port = e.target.closest(".port");
+  if (!port) return;
+  const id = port.dataset.node, p = port.dataset.port, dir = port.dataset.dir;
+  wires = wires.filter(w => dir === "out" ? !(w.from === id && w.fromPort === p) : !(w.to === id && w.toPort === p));
+  log("sys", `Severed connections on ${id}:${p}`);
+  renderAll();
+});
+
+function parseHex(v, fallback) {
+  const n = parseInt(String(v).replace(/_/g, ""), 16);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function matches(pkt, cfg) {
+  const field = cfg.field || "freq";
+  let left = pkt[field];
+  let right = cfg.value;
+  if (field === "freq" || field === "payload" || field === "id") right = Number(right);
+  const eq = left == right;
+  return (cfg.op || "eq") === "neq" ? !eq : eq;
+}
+
+function outs(nodeId, port) {
+  return wires.filter(w => w.from === nodeId && w.fromPort === port);
+}
+
+function deliver(list, nodeId) {
+  const n = nodes.find(x => x.id === nodeId);
+  if (n) n.buffer.push(...list);
+}
+
+function step() {
+  tick++;
+  const snapshot = nodes.map(n => ({ id: n.id, type: n.type, pkts: n.buffer.slice(), cfg: n.config }));
+  nodes.forEach(n => { if (n.type !== "sigil" && n.type !== "incinerator") n.buffer = []; });
+
+  snapshot.forEach(s => {
+    const node = nodes.find(n => n.id === s.id);
+    let pkts = s.pkts;
+    if (!pkts.length) return;
+
+    if (s.type === "delay") {
+      const hold = [];
+      const ready = [];
+      pkts.forEach(p => {
+        const next = { ...p, wait: (p.wait || 0) + 1 };
+        if (next.wait > 1) ready.push({ ...next, wait: 0 });
+        else hold.push(next);
+      });
+      node.buffer.push(...hold);
+      pkts = ready;
+      if (!pkts.length) return;
+    }
+
+    if (s.type === "sorter") {
+      const key = s.cfg.key || "id";
+      const dir = s.cfg.dir === "desc" ? -1 : 1;
+      pkts = pkts.slice().sort((a, b) => (a[key] - b[key]) * dir);
+    }
+
+    if (s.type === "transform") {
+      const mask = parseHex(s.cfg.mask, 0xff);
+      pkts = pkts.map(p => ({ ...p, payload: p.payload & mask, maskApplied: true }));
+    }
+
+    if (s.type === "hash") {
+      const salt = parseHex(s.cfg.xorSalt, 0);
+      pkts = pkts.map(p => ({ ...p, payload: p.payload ^ salt, xorApplied: salt === XOR_SALT }));
+    }
+
+    if (s.type === "filter" || s.type === "gateway") {
+      const pass = pkts.filter(p => matches(p, s.cfg));
+      const fail = pkts.filter(p => !matches(p, s.cfg));
+      outs(s.id, "pass").forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
+      outs(s.id, "fail").forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
+      if (!outs(s.id, "pass").length && !outs(s.id, "fail").length) node.buffer.push(...pkts);
+      log("sys", `${node.title}: pass ${pass.length} / fail ${fail.length}`);
+      return;
+    }
+
+    if (s.type === "branch") {
+      const t = pkts.filter(p => matches(p, s.cfg));
+      const f = pkts.filter(p => !matches(p, s.cfg));
+      outs(s.id, "true").forEach(w => deliver(t.map(p => ({ ...p })), w.to));
+      outs(s.id, "false").forEach(w => deliver(f.map(p => ({ ...p })), w.to));
+      return;
+    }
+
+    if (s.type === "sigil" || s.type === "incinerator") {
+      node.buffer.push(...pkts);
+      return;
+    }
+
+    const next = outs(s.id, "out");
+    if (next.length) next.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+    else node.buffer.push(...pkts);
+  });
+
+  const sigil = nodes.find(n => n.type === "sigil");
+  const burn = nodes.find(n => n.type === "incinerator");
+  log("in", `Step ${tick} · forge ${sigil.buffer.length} · incinerator ${burn.buffer.length} · ingress ${nodes.find(n=>n.type==="ingress").buffer.length}`);
+  evaluate(sigil);
+  renderAll();
+  if (selected) showInspector(nodes.find(n => n.id === selected));
+}
+
+function evaluate(sigil) {
+  if (won || !sigil.buffer.length) return;
+  const lunar = sigil.buffer.filter(p => p.freq === LUNAR_FREQ && p.payload === SIGIL_BYTE);
+  const junk = sigil.buffer.length - lunar.length;
+  if (junk) {
+    log("err", `Forge contaminated (${junk} invalid). Checksum lock holds at 0x007F.`);
+    pts = Math.max(0, pts - 5);
+    return;
+  }
+  const need = nodes.find(n => n.type === "ingress");
+  const expected = (need && false) || Math.floor(PACKET_N / 6) + (PACKET_N % 6 === 0 ? 0 : 1);
+  const lunarTotal = makePackets().filter(p => p.freq === LUNAR_FREQ).length;
+  if (lunar.length >= lunarTotal && lunar.every(p => p.xorApplied || p.payload === SIGIL_BYTE)) {
+    won = true;
+    pts += 250;
+    document.getElementById("win-detail").textContent =
+      `${lunar.length} lunar packets aligned. Checksum 0x007F verified. AEON Survival Mode loosened on Sector 01.`;
+    document.getElementById("win").classList.add("show");
+    log("ok", "SIGIL I — LUNAR synthesized. Checksum 0x007F accepted.");
+  } else if (lunar.length) {
+    log("warn", `Partial glyph: ${lunar.length}/${lunarTotal} lunar checksums at the forge. Keep stepping or reload after wiring.`);
+  }
+}
+
+document.getElementById("btn-play").addEventListener("click", step);
+document.getElementById("btn-reload").addEventListener("click", () => {
+  const ing = nodes.find(n => n.type === "ingress");
+  ing.buffer = makePackets();
+  nodes.forEach(n => { if (n.type !== "ingress") n.buffer = []; });
+  won = false;
+  log("in", "Reloaded 200 telemetry packets into ARK_INGRESS_01.");
+  renderAll();
+});
+document.getElementById("btn-reset").addEventListener("click", resetRound);
+document.getElementById("btn-help").addEventListener("click", () => {
+  document.getElementById("how-modal").classList.remove("hidden");
+});
+document.getElementById("init-protocol").addEventListener("click", () => {
+  document.getElementById("brief-modal").classList.add("hidden");
+  document.getElementById("how-modal").classList.remove("hidden");
+});
+document.getElementById("got-it").addEventListener("click", () => {
+  document.getElementById("how-modal").classList.add("hidden");
+});
+document.querySelectorAll("[data-close]").forEach(btn => {
+  btn.addEventListener("click", () => document.getElementById(btn.dataset.close).classList.add("hidden"));
+});
+document.getElementById("win-close").addEventListener("click", () => document.getElementById("win").classList.remove("show"));
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    logMode = tab.dataset.tab;
+  });
+});
+
+renderPalette();
+resetRound();
+</script>
+</body>
+</html>
