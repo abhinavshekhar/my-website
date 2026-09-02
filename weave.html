@@ -523,7 +523,6 @@ canvas.addEventListener("drop", e => {
     subtitle: spec.desc,
     x: e.clientX - rect.left + canvas.scrollLeft - 90,
     y: e.clientY - rect.top + canvas.scrollTop - 20
-    y: e.clientY - rect.top - 20
   });
   renderAll();
   log("sys", `Node ${spec.name} dropped onto the weave.`);
