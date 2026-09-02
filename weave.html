@@ -649,16 +649,30 @@ function showInspector(node) {
     document.getElementById("btn-propagate").onclick = step;
     return;
   }
+  if (node.type === "filter") {
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · Integrity gate // breach 03:13</p>
+      <div class="enc-box"><div class="k">RESONANT PASS RULE</div>
+        <p>freq ∈ {313Hz, 626Hz} (timestamp 03:13 and 2nd harmonic)<br>AND entropy &lt; 0.80</p></div>
+      <div class="field"><label>Field</label>
+        <select data-k="field"><option value="entropy">entropy</option><option value="freq">freq</option></select></div>
+      <div class="field"><label>Operator</label>
+        <select data-k="op"><option value="lt">less than</option><option value="eq">equals</option></select></div>
+      <div class="field"><label>Match value</label>
+        <input data-k="value" value="${node.config.value || "0.80"}"></div>
+      <p class="hint">Do not use freq lessThan 0.80 — that rejects everything. Round 1 always applies the resonant rule above.</p>
+      <div class="wire-row"><span>PASS</span><span>${wireStatus(node.id, "pass")}</span></div>
+      <div class="wire-row"><span>REJECT</span><span>${wireStatus(node.id, "fail")}</span></div>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    return;
+  }
   const cfg = node.config || {};
   let fields = `<p class="hint">${node.title} · ${node.type}${node.locked ? " (locked on canvas)" : ""}</p>`;
-  if (node.type === "filter" || node.type === "branch") {
-    fields += `
-      <div class="field"><label>Field</label>
-        <select data-k="field"><option>entropy</option><option>freq</option><option>role</option><option>status</option><option>value</option></select></div>
-      <div class="field"><label>Operator</label>
-        <select data-k="op"><option value="lt">less than</option><option value="gt">greater than</option><option value="eq">equals</option><option value="neq">not equals</option></select></div>
-      <div class="field"><label>Match value</label><input data-k="value" value="${cfg.value ?? ""}"></div>`;
-  }
   if (node.type === "transform") {
     fields += `<div class="field"><label>AND mask (hex)</label><input data-k="mask" value="${cfg.mask || "0xFF"}"></div>
       <div class="field"><label>Extract sub-frame</label>
@@ -818,6 +832,10 @@ function matches(pkt, cfg) {
   return op === "neq" ? !eq : eq;
 }
 
+function integrityPass(pkt) {
+  return (pkt.freq === 313 || pkt.freq === 626) && Number(pkt.entropy) < 0.80;
+}
+
 function condMatch(pkt, cond) {
   const c = String(cond || "").trim().toUpperCase();
   if (!c) return false;
@@ -955,8 +973,8 @@ function step() {
     }
 
     if (s.type === "filter") {
-      const pass = pkts.filter(p => matches(p, s.cfg));
-      const fail = pkts.filter(p => !matches(p, s.cfg));
+      const pass = pkts.filter(integrityPass);
+      const fail = pkts.filter(p => !integrityPass(p));
       const passW = outs(s.id, "pass");
       const failW = outs(s.id, "fail");
       passW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to, w.toPort));
