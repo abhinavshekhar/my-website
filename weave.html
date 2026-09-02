@@ -49,7 +49,7 @@
   .btn-icon { width: 34px; height: 34px; border-radius: 8px; }
   .pts { color: var(--amber); font-weight: 700; font-size: 12px; padding: 0 6px; }
 
-  .workspace { display: grid; grid-template-columns: 250px 1fr 280px; min-height: 0; }
+  .workspace { display: grid; grid-template-columns: 250px 1fr 310px; min-height: 0; }
   .palette, .inspector {
     background: var(--panel); border-right: 1px solid var(--line); overflow: auto; padding: 12px;
   }
@@ -98,6 +98,16 @@
     padding: 7px 8px; border-radius: 6px; font-family: inherit; font-size: 12px;
   }
   .hint { font-size: 10px; color: var(--muted); line-height: 1.45; }
+  .lock-banner { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .lock-tag { color: #fb7185; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+  .enc-box { border: 1px solid rgba(244,63,94,0.35); background: #140b10; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+  .enc-box .k { font-size: 9px; color: #fb7185; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .enc-box p { font-size: 10px; color: #d6dbe6; line-height: 1.4; }
+  .hex { font-size: 9px; color: #7dd3fc; line-height: 1.5; word-break: break-all; }
+  .wire-row { display: flex; justify-content: space-between; font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .insp-foot { display: flex; gap: 8px; margin-top: 12px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .l-pipe { color: #67e8f9; }
 
   .bottom {
     border-top: 1px solid var(--line); background: #0b0e14; display: flex; flex-direction: column; min-height: 0;
@@ -266,6 +276,10 @@ const PALETTE = [
     { type: "transform", name: "Byte Transformer", desc: "Transform: mask", color: "#f472b6" },
     { type: "hash", name: "Hash Mutator", desc: "Mutate: xorSalt", color: "#fbbf24" },
     { type: "delay", name: "Delay Buffer", desc: "Delay: 500ms", color: "#94a3b8" }
+  ]},
+  { group: "CONTROL FLOW", items: [
+    { type: "merge", name: "Stream Merge", desc: "Joins two inputs", color: "#38bdf8" },
+    { type: "fork", name: "Packet Fork", desc: "Duplicates stream", color: "#a78bfa" }
   ]}
 ];
 
@@ -292,7 +306,8 @@ function log(kind, msg) {
   const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
   const row = document.createElement("div");
   row.className = "l-" + kind;
-  row.textContent = `[${ts}] [${kind.toUpperCase()}] ${msg}`;
+  const tag = kind === "pipe" ? "PIPELINE" : kind.toUpperCase();
+  row.textContent = `[${ts}] [${tag}] ${msg}`;
   if (logMode === "tele" && kind !== "in" && kind !== "ok") return;
   logEl.appendChild(row);
   logEl.scrollTop = logEl.scrollHeight;
@@ -330,9 +345,21 @@ function defaultConfig(type) {
 function portsFor(type) {
   if (type === "ingress") return { in: [], out: [{ id: "out", color: "cyan" }] };
   if (type === "incinerator" || type === "sigil") return { in: [{ id: "in", color: "cyan" }], out: [] };
-  if (type === "filter" || type === "gateway") return {
+  if (type === "filter") return {
     in: [{ id: "in", color: "cyan" }],
     out: [{ id: "pass", color: "green" }, { id: "fail", color: "red" }]
+  };
+  if (type === "gateway") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "out", color: "green" }, { id: "error", color: "red" }]
+  };
+  if (type === "merge") return {
+    in: [{ id: "in", color: "cyan" }, { id: "in2", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }]
+  };
+  if (type === "fork") return {
+    in: [{ id: "in", color: "cyan" }],
+    out: [{ id: "out", color: "cyan" }, { id: "out2", color: "violet" }]
   };
   if (type === "branch") return {
     in: [{ id: "in", color: "cyan" }],
@@ -367,27 +394,30 @@ function resetRound() {
   uid = 1;
   addNode({
     id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
-    subtitle: "Telemetry source", x: 40, y: 70, locked: true,
+    subtitle: "Telemetry source", x: 36, y: 88, locked: true,
     buffer: makePackets()
   });
   addNode({
-    id: "gateway", type: "gateway", title: "SYS_SEC_GATEWAY",
-    subtitle: "Security: RESTRICTED [E…]", x: 330, y: 40, locked: true
+    id: "gw1", type: "gateway", title: "SYS_SEC_GATEWAY",
+    subtitle: "Security: RESTRICTED [ENC]", x: 310, y: 56, locked: true
   });
   addNode({
     id: "sigil", type: "sigil", title: "Sigil Synthesis Forge",
-    subtitle: "Checksum: 0x007F [LOCK…]", x: 640, y: 40, locked: true
+    subtitle: "Checksum: 0x007F [LOCK…]", x: 680, y: 40, locked: true
   });
   addNode({
     id: "burn", type: "incinerator", title: "Incinerator (Purge)",
-    subtitle: "Incinerates Packets", x: 640, y: 220, locked: true
+    subtitle: "Incinerates Packets", x: 310, y: 250, locked: true
   });
+  wires.push({ from: "ingress", fromPort: "out", to: "gw1", toPort: "in" });
+  selected = "gw1";
   renderAll();
   logEl.innerHTML = "";
   log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
   log("sys", "Neural weave pipeline standing by for signal routing.");
   log("warn", "Anomalous signal patterns detected across ingress frequencies.");
   log("diag", "Awaiting weave logic and filter topology configuration.");
+  showInspector(nodes.find(n => n.id === "gw1"));
 }
 
 function renderPalette() {
@@ -397,7 +427,7 @@ function renderPalette() {
     g.items.map(it => `
       <div class="pal-item" draggable="true" data-type="${it.type}">
         <span class="dot" style="background:${it.color}"></span>
-        <div><div>${it.name}</div><small>${it.desc}</small></div>
+        <div><div>${it.name}</div><small>${it.desc}</small><small>Packets: 0</small></div>
       </div>`).join("")
   ).join("");
   el.querySelectorAll(".pal-item").forEach(item => {
@@ -452,10 +482,46 @@ function nodeEl(node) {
   return div;
 }
 
+function wireStatus(nodeId, port) {
+  const w = wires.find(x => x.from === nodeId && x.fromPort === port);
+  if (!w) return "Disconnected";
+  const dest = nodes.find(n => n.id === w.to);
+  return dest ? dest.title : w.to;
+}
+
 function showInspector(node) {
+  if (node.type === "gateway") {
+    inspector.innerHTML = `
+      <div class="lock-banner">
+        <div>
+          <div class="lock-tag">LOCKED</div>
+          <h3 style="margin:4px 0 0">${node.title}</h3>
+          <p class="hint">ID ${node.id} · [READ-ONLY ENCRYPTED NODE]</p>
+        </div>
+      </div>
+      <button class="btn btn-cyan" id="btn-propagate" style="width:100%;margin-bottom:10px">Propagate Data Flow</button>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · SECURITY LEVEL</div>
+        <p>RESTRICTED // 0x7F4A_KERNEL_ENC<br>Policy: KERNEL_EXCEPTION_TRAP_MODE</p></div>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · FIREWALL CIPHER PROTOCOL</div>
+        <p>AES-256-GCM // RSA-4096_PUB_KEY</p></div>
+      <div class="enc-box"><div class="k">🔒 ENCRYPTED · AUTHORIZATION SIGNATURE</div>
+        <p>0x8F9A2B4C71E0D3AA · IMMUTABLE_HARDWARE_FUSED</p></div>
+      <div class="enc-box"><div class="k">ENCRYPTED KERNEL SEGMENT [SYS_SEC]</div>
+        <div class="hex">53 59 53 5F 53 45 43 5F 47 57 01 7F 4A 0A 5A 00<br>4B 45 52 4E 45 4C 5F 45 58 43 45 50 54 00 7F</div></div>
+      <p class="hint" style="margin:10px 0 4px">ACTIVE OUTBOUND WIRES</p>
+      <div class="wire-row"><span>OUT</span><span>${wireStatus(node.id, "out")}</span></div>
+      <div class="wire-row"><span>ERROR</span><span>${wireStatus(node.id, "error")}</span></div>
+      <div class="insp-foot">
+        <button class="btn" id="insp-close">Close</button>
+        <button class="btn" disabled>Read-Only Locked</button>
+      </div>`;
+    document.getElementById("btn-propagate").onclick = step;
+    document.getElementById("insp-close").onclick = () => { selected = null; renderAll(); inspector.innerHTML = `<h3>NODE CONFIG</h3><p class="hint">Click a node to configure it.</p>`; };
+    return;
+  }
   const cfg = node.config || {};
   let fields = `<p class="hint">${node.title} · ${node.type}${node.locked ? " (locked on canvas)" : ""}</p>`;
-  if (node.type === "filter" || node.type === "gateway" || node.type === "branch") {
+  if (node.type === "filter" || node.type === "branch") {
     fields += `
       <div class="field"><label>Field</label>
         <select data-k="field"><option>freq</option><option>value</option><option>payload</option><option>id</option></select></div>
@@ -624,13 +690,41 @@ function step() {
       pkts = pkts.map(p => ({ ...p, payload: p.payload ^ salt, xorApplied: salt === XOR_SALT }));
     }
 
-    if (s.type === "filter" || s.type === "gateway") {
+    if (s.type === "fork") {
+      const a = outs(s.id, "out");
+      const b = outs(s.id, "out2");
+      a.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+      b.forEach(w => deliver(pkts.map(p => ({ ...p })), w.to));
+      if (!a.length && !b.length) node.buffer.push(...pkts);
+      return;
+    }
+
+    if (s.type === "filter") {
       const pass = pkts.filter(p => matches(p, s.cfg));
       const fail = pkts.filter(p => !matches(p, s.cfg));
       outs(s.id, "pass").forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
       outs(s.id, "fail").forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
       if (!outs(s.id, "pass").length && !outs(s.id, "fail").length) node.buffer.push(...pkts);
       log("sys", `${node.title}: pass ${pass.length} / fail ${fail.length}`);
+      return;
+    }
+
+    if (s.type === "gateway") {
+      const pass = pkts.filter(p => matches(p, s.cfg));
+      const fail = pkts.filter(p => !matches(p, s.cfg));
+      const outW = outs(s.id, "out");
+      const errW = outs(s.id, "error");
+      if (!outW.length && !errW.length) {
+        node.buffer.push(...pkts);
+        log("pipe", `Upstream propagation complete at step ${tick}. ${pkts.length} packet(s) synchronized in gw1.`);
+        log("warn", "SYS_SEC_GATEWAY trap: OUT and ERROR disconnected. Packets held.");
+        return;
+      }
+      outW.forEach(w => deliver(pass.map(p => ({ ...p })), w.to));
+      errW.forEach(w => deliver(fail.map(p => ({ ...p })), w.to));
+      if (!outW.length) node.buffer.push(...pass);
+      if (!errW.length) node.buffer.push(...fail);
+      log("pipe", `gw1 KERNEL_EXCEPTION_TRAP_MODE · OUT ${pass.length} · ERROR ${fail.length}`);
       return;
     }
 
@@ -654,7 +748,12 @@ function step() {
 
   const sigil = nodes.find(n => n.type === "sigil");
   const burn = nodes.find(n => n.type === "incinerator");
-  log("in", `Step ${tick} · forge ${sigil.buffer.length} · incinerator ${burn.buffer.length} · ingress ${nodes.find(n=>n.type==="ingress").buffer.length}`);
+  const gw = nodes.find(n => n.id === "gw1");
+  if (tick === 1) {
+    log("pipe", "Propagating pipeline upstream of node gw1...");
+    log("in", "ARK_INGRESS_01 dispatched 200 telemetry frame(s) into pipeline.");
+  }
+  log("in", `Step ${tick} · gw1 ${gw.buffer.length} · forge ${sigil.buffer.length} · incinerator ${burn.buffer.length}`);
   evaluate(sigil);
   renderAll();
   if (selected) showInspector(nodes.find(n => n.id === selected));
@@ -690,7 +789,7 @@ document.getElementById("btn-reload").addEventListener("click", () => {
   ing.buffer = makePackets();
   nodes.forEach(n => { if (n.type !== "ingress") n.buffer = []; });
   won = false;
-  log("in", "Reloaded 200 telemetry packets into ARK_INGRESS_01.");
+  log("in", "ARK_INGRESS_01 dispatched 200 telemetry frame(s) into pipeline.");
   renderAll();
 });
 document.getElementById("btn-reset").addEventListener("click", resetRound);
