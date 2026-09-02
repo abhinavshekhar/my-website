@@ -271,14 +271,15 @@ const PALETTE = [
     { type: "ingress", name: "ARK Ingress", desc: "Emits Packets", color: "#22d3ee" }
   ]},
   { group: "LOGIC & ROUTING", items: [
-    { type: "filter", name: "Integrity Filter", desc: "Filter: freq equals", color: "#4ade80" },
+    { type: "filter", name: "Integrity Filter", desc: "Filter: entropy lessThan", color: "#4ade80" },
     { type: "branch", name: "Conditional Branch", desc: "Branch: valueMatch", color: "#c084fc" },
-    { type: "sorter", name: "Sequence Sorter", desc: "Sorts: nodeId", color: "#22d3ee" }
+    { type: "sorter", name: "Sequence Sorter", desc: "Sorts: nodeId", color: "#22d3ee" },
+    { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" }
   ]},
   { group: "DATA PROCESSING", items: [
     { type: "transform", name: "Byte Transformer", desc: "Transform: mask", color: "#f472b6" },
     { type: "hash", name: "Hash Mutator", desc: "Mutate: xorSalt", color: "#fbbf24" },
-    { type: "delay", name: "Delay Buffer", desc: "Delay: 500ms", color: "#94a3b8" }
+    { type: "delay", name: "Delay Buffer", desc: "Delay: 700ms", color: "#94a3b8" }
   ]},
   { group: "CONTROL FLOW", items: [
     { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" },
@@ -313,10 +314,10 @@ function log(kind, msg) {
   const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
   const tags = {
     pipe: "PIPELINE", in: "INGRESS", hash: "HASH_MUTATOR", gw: "SYS_SEC_GATEWAY",
-    err: "ERR", diag: "DIAGNOSTIC", warn: "WARNING", sys: "SYSTEM", ok: "OK"
+    err: "ERR", diag: "DIAGNOSTIC", warn: "WARNING", sys: "SYSTEM", ok: "OK", filter: "FILTER"
   };
   const row = document.createElement("div");
-  row.className = "l-" + (kind === "gw" || kind === "hash" ? "sys" : kind);
+  row.className = "l-" + (kind === "gw" || kind === "hash" || kind === "filter" ? "sys" : kind);
   row.textContent = `[${ts}] [${tags[kind] || kind.toUpperCase()}] ${msg}`;
   logEl.appendChild(row);
   logEl.scrollTop = logEl.scrollHeight;
@@ -325,24 +326,23 @@ function log(kind, msg) {
 function makePackets() {
   const list = [];
   for (let i = 0; i < PACKET_N; i++) {
-    const decoy = i < 78;
-    const malicious = !decoy && i < 92;
-    const header = !decoy && !malicious && ((i - 92) % 2 === 0);
-    const role = decoy ? "DECOY" : (malicious ? "VECTOR" : (header ? "HEADER" : "BODY"));
-    const pair = Math.floor((i - 92) / 2) + 1;
-    const hexId = decoy || malicious
-      ? ("0x" + i.toString(16).toUpperCase().padStart(4, "0"))
-      : ("0x0313_" + String(header ? pair * 2 - 1 : pair * 2).padStart(2, "0"));
+    const decoy = i < 176;
+    const idx = i - 176;
+    const header = !decoy && idx % 2 === 0;
+    const role = decoy ? "DECOY" : (header ? "HEADER" : "BODY");
+    const pair = decoy ? 0 : Math.floor(idx / 2) + 1;
     list.push({
       id: i,
-      hexId,
-      freq: decoy ? 240 + (i % 9) : (malicious ? 480 : (header ? 313 : 626)),
+      hexId: decoy
+        ? ("0x" + i.toString(16).toUpperCase().padStart(4, "0"))
+        : ("0x0313_" + String(header ? pair * 2 - 1 : pair * 2).padStart(2, "0")),
+      freq: decoy ? 240 + (i % 17) : (header ? 313 : 626),
       value: role,
       payload: (i * 17 + 9) & 0xff,
-      entropy: decoy ? 88 + (i % 12) : 12 + (i % 20),
-      status: decoy ? "DECOY" : (malicious ? "MALICIOUS" : "CLEAN"),
+      entropy: decoy ? 88 + (i % 12) : 12 + (idx % 20),
+      status: decoy ? "DECOY" : "CLEAN",
       decoy,
-      malicious,
+      malicious: false,
       fused: false,
       role,
       latencyMs: header ? 100 : (role === "BODY" ? 700 : 0),
@@ -359,10 +359,10 @@ function makePackets() {
 
 function defaultConfig(type) {
   if (type === "filter") return { field: "entropy", op: "lt", value: "80" };
+  if (type === "delay") return { ms: 700 };
   if (type === "hash") return { algo: "crc16", saltKey: "", xorSalt: "0x5A", outputTarget: "sessionToken" };
   if (type === "branch") return { field: "role", op: "eq", value: "HEADER" };
   if (type === "transform") return { mask: "0xFF", extract: "none" };
-  if (type === "delay") return { ms: 500 };
   if (type === "sorter") return { key: "id", dir: "asc" };
   if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
   return {};
@@ -430,7 +430,7 @@ function resetRound() {
   });
   addNode({
     id: "filt1", type: "filter", title: "Integrity Filter 1",
-    subtitle: "Filter: entropy < 80", x: 250, y: 40, locked: false,
+    subtitle: "Filter: entropy lessThan", x: 250, y: 40, locked: false,
     config: { field: "entropy", op: "lt", value: "80" }
   });
   addNode({
@@ -876,7 +876,7 @@ function step() {
         if (burn) burn.buffer.push(...fail.map(p => ({ ...p })));
         else node.buffer.push(...fail);
       }
-      log("sys", `${node.title}: pass ${pass.length} / stripped ${fail.length} high-entropy decoy(s) (entropy < 80).`);
+      log("filter", `Node ${node.title} routed ${pass.length} valid resonant fragment(s) -> PASS, rejected ${fail.length} decoy(s) -> REJECT.`);
       return;
     }
 
