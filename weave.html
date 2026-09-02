@@ -63,7 +63,7 @@
   .pal-item small { display: block; color: var(--muted); font-size: 10px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  #canvas-wrap { position: relative; min-width: 0; background:
+  #canvas-wrap { position: relative; min-width: 0; overflow: auto; background:
     linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
     linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 28px 28px,
     #080a10;
@@ -422,40 +422,59 @@ function resetRound() {
   won = false;
   tick = 0;
   uid = 1;
-  typeCounts = { ingress: 1, hash: 1, filter: 1 };
+  typeCounts = { ingress: 1, hash: 1, filter: 1, branch: 1, delay: 1, join: 1 };
   addNode({
     id: "ingress", type: "ingress", title: "ARK_INGRESS_01",
-    subtitle: "Emits Packets", x: 16, y: 90, locked: true,
+    subtitle: "Emits Packets", x: 16, y: 40, locked: true,
     buffer: makePackets()
   });
   addNode({
     id: "filt1", type: "filter", title: "Integrity Filter 1",
-    subtitle: "Filter: entropy < 80", x: 210, y: 70, locked: false,
+    subtitle: "Filter: entropy < 80", x: 250, y: 40, locked: false,
     config: { field: "entropy", op: "lt", value: "80" }
   });
   addNode({
     id: "hash_1", type: "hash", title: "Hash Mutator 1",
-    subtitle: "Mutate: crc16", x: 420, y: 70, locked: false,
+    subtitle: "Mutate: crc16", x: 490, y: 40, locked: false,
     config: { algo: "crc16", saltKey: "0x0313", xorSalt: "0x5A", outputTarget: "sessionToken" }
   });
   addNode({
     id: "gw1", type: "gateway", title: "SYS_SEC_GATEWAY",
-    subtitle: "Security: RESTRICTED [ENC]", x: 640, y: 46, locked: true
+    subtitle: "Security: RESTRICTED [ENC]", x: 730, y: 20, locked: true
+  });
+  addNode({
+    id: "br1", type: "branch", title: "Conditional Branch 1",
+    subtitle: "Branch: role = HEADER", x: 730, y: 200, locked: false,
+    config: { field: "role", op: "eq", value: "HEADER" }
+  });
+  addNode({
+    id: "dly1", type: "delay", title: "Delay Buffer 1",
+    subtitle: "Delay: 700ms", x: 980, y: 20, locked: false,
+    config: { ms: 700 }
+  });
+  addNode({
+    id: "join1", type: "join", title: "Stream Join 1",
+    subtitle: "Merge: waitForBoth", x: 980, y: 200, locked: false
   });
   addNode({
     id: "sigil", type: "sigil", title: "Sigil Synthesis Forge",
-    subtitle: "Checksum: 0x007F [LOCK…]", x: 860, y: 30, locked: true
+    subtitle: "Checksum: 0x007F [LOCK…]", x: 1220, y: 100, locked: true
   });
   addNode({
     id: "burn", type: "incinerator", title: "Incinerator (Purge)",
-    subtitle: "Incinerates Packets", x: 640, y: 250, locked: false
+    subtitle: "Incinerates Packets", x: 490, y: 280, locked: false
   });
   wires.push({ from: "ingress", fromPort: "out", to: "filt1", toPort: "in" });
   wires.push({ from: "filt1", fromPort: "pass", to: "hash_1", toPort: "in" });
   wires.push({ from: "filt1", fromPort: "fail", to: "burn", toPort: "in" });
   wires.push({ from: "hash_1", fromPort: "out", to: "gw1", toPort: "in" });
   wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
-  selected = "filt1";
+  wires.push({ from: "gw1", fromPort: "out", to: "br1", toPort: "in" });
+  wires.push({ from: "br1", fromPort: "true", to: "dly1", toPort: "in" });
+  wires.push({ from: "br1", fromPort: "false", to: "join1", toPort: "in2" });
+  wires.push({ from: "dly1", fromPort: "out", to: "join1", toPort: "in" });
+  wires.push({ from: "join1", fromPort: "out", to: "sigil", toPort: "in" });
+  selected = "join1";
   renderAll();
   logEl.innerHTML = "";
   log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
@@ -463,7 +482,8 @@ function resetRound() {
   log("warn", "Anomalous signal patterns detected across ingress frequencies.");
   log("diag", "Awaiting weave logic and filter topology configuration.");
   log("diag", "HARMONIC_COLLAPSE countermeasure armed: Integrity Filter at ingress (entropy < 80).");
-  showInspector(nodes.find(n => n.id === "filt1"));
+  log("diag", "PAYLOAD_INCOMPLETE countermeasure armed: HEADER delayed 700ms, BODY waitForBoth via Stream Join.");
+  showInspector(nodes.find(n => n.id === "join1"));
 }
 
 function renderPalette() {
