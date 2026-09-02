@@ -280,7 +280,7 @@ const PALETTE = [
     { type: "ingress", name: "ARK Ingress", desc: "Emits Packets", color: "#22d3ee" }
   ]},
   { group: "LOGIC & ROUTING", items: [
-    { type: "filter", name: "Integrity Filter", desc: "Filter: entropy lessThan", color: "#4ade80" },
+    { type: "filter", name: "Integrity Filter", desc: "Filter: entropy < 0.80", color: "#4ade80" },
     { type: "branch", name: "Conditional Branch", desc: "Branch: valueMatch", color: "#c084fc" },
     { type: "sorter", name: "Sequence Sorter", desc: "Sorts: nodeId", color: "#22d3ee" },
     { type: "join", name: "Stream Join", desc: "Merge: waitForBoth", color: "#38bdf8" }
@@ -348,7 +348,7 @@ function makePackets() {
       freq: decoy ? 240 + (i % 17) : (header ? 313 : 626),
       value: role,
       payload: (i * 17 + 9) & 0xff,
-      entropy: decoy ? 88 + (i % 12) : 12 + (idx % 20),
+      entropy: decoy ? 0.80 + (i % 20) / 100 : 0.18 + (idx % 12) / 50,
       status: decoy ? "DECOY" : "CLEAN",
       decoy,
       malicious: false,
@@ -367,10 +367,10 @@ function makePackets() {
 }
 
 function defaultConfig(type) {
-  if (type === "filter") return { field: "entropy", op: "lt", value: "80" };
+  if (type === "filter") return { field: "entropy", op: "lt", value: "0.80" };
   if (type === "delay") return { ms: 700 };
   if (type === "hash") return { algo: "crc16", saltKey: "", xorSalt: "0x5A", outputTarget: "sessionToken" };
-  if (type === "branch") return { field: "role", op: "eq", value: "HEADER" };
+  if (type === "branch") return { logic: "valueMatch", condA: "HEADER", condB: "BODY" };
   if (type === "transform") return { mask: "0xFF", extract: "none" };
   if (type === "sorter") return { key: "id", dir: "asc" };
   if (type === "gateway") return { field: "payload", op: "eq", value: String(SIGIL_BYTE) };
@@ -402,7 +402,7 @@ function portsFor(type) {
   };
   if (type === "branch") return {
     in: [{ id: "in", color: "cyan" }],
-    out: [{ id: "true", color: "cyan" }, { id: "false", color: "violet" }]
+    out: [{ id: "def", color: "green" }, { id: "a", color: "cyan" }, { id: "b", color: "violet" }]
   };
   return { in: [{ id: "in", color: "cyan" }], out: [{ id: "out", color: "cyan" }] };
 }
@@ -439,8 +439,8 @@ function resetRound() {
   });
   addNode({
     id: "filt1", type: "filter", title: "Integrity Filter 1",
-    subtitle: "Filter: entropy lessThan", x: 250, y: 40, locked: false,
-    config: { field: "entropy", op: "lt", value: "80" }
+    subtitle: "Filter: entropy < 0.80", x: 250, y: 40, locked: false,
+    config: { field: "entropy", op: "lt", value: "0.80" }
   });
   addNode({
     id: "hash_1", type: "hash", title: "Hash Mutator 1",
@@ -453,8 +453,8 @@ function resetRound() {
   });
   addNode({
     id: "br1", type: "branch", title: "Conditional Branch 1",
-    subtitle: "Branch: role = HEADER", x: 730, y: 200, locked: false,
-    config: { field: "role", op: "eq", value: "HEADER" }
+    subtitle: "Branch: valueMatch", x: 730, y: 200, locked: false,
+    config: { logic: "valueMatch", condA: "HEADER", condB: "BODY" }
   });
   addNode({
     id: "dly1", type: "delay", title: "Delay Buffer 1",
@@ -479,8 +479,8 @@ function resetRound() {
   wires.push({ from: "hash_1", fromPort: "out", to: "gw1", toPort: "in" });
   wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
   wires.push({ from: "gw1", fromPort: "out", to: "br1", toPort: "in" });
-  wires.push({ from: "br1", fromPort: "true", to: "dly1", toPort: "in" });
-  wires.push({ from: "br1", fromPort: "false", to: "join1", toPort: "in2" });
+  wires.push({ from: "br1", fromPort: "a", to: "dly1", toPort: "in" });
+  wires.push({ from: "br1", fromPort: "b", to: "join1", toPort: "in2" });
   wires.push({ from: "dly1", fromPort: "out", to: "join1", toPort: "in" });
   wires.push({ from: "join1", fromPort: "out", to: "sigil", toPort: "in" });
   selected = "sigil";
@@ -598,6 +598,28 @@ function showInspector(node) {
     document.getElementById("insp-close").onclick = () => { selected = null; renderAll(); inspector.innerHTML = `<h3>NODE CONFIG</h3><p class="hint">Click a node to configure it.</p>`; };
     return;
   }
+  if (node.type === "branch") {
+    inspector.innerHTML = `
+      <h3>NODE CONFIGURATION</h3>
+      <p class="hint">${node.title} · ID branch_1 // [READ-ONLY ENCRYPTED NODE]</p>
+      <div class="field"><label>Logic Type</label>
+        <select data-k="logic"><option value="valueMatch">valueMatch</option><option value="rangeSplitting">rangeSplitting</option><option value="bitCheck">bitCheck</option></select></div>
+      <div class="field"><label>Port A Condition</label>
+        <input data-k="condA" placeholder="Match Condition A" value="${node.config.condA || ""}"></div>
+      <div class="field"><label>Port B Condition</label>
+        <input data-k="condB" placeholder="Match Condition B" value="${node.config.condB || ""}"></div>
+      <p class="hint" style="margin:10px 0 4px">ACTIVE OUTBOUND WIRES</p>
+      <div class="wire-row"><span>PORT_A</span><span>${wireStatus(node.id, "a")}</span></div>
+      <div class="wire-row"><span>PORT_B</span><span>${wireStatus(node.id, "b")}</span></div>
+      <div class="wire-row"><span>DEFAULT</span><span>${wireStatus(node.id, "def")}</span></div>
+      <p class="hint">HEADER (313Hz) → PORT_A. BODY (626Hz) → PORT_B. Breach timestamp 03:13.</p>`;
+    inspector.querySelectorAll("[data-k]").forEach(el => {
+      if (el.tagName === "SELECT") el.value = node.config[el.dataset.k] ?? el.value;
+      el.addEventListener("change", () => { node.config[el.dataset.k] = el.value; node.subtitle = "Branch: " + (node.config.logic || "valueMatch"); });
+      el.addEventListener("input", () => { node.config[el.dataset.k] = el.value; });
+    });
+    return;
+  }
   if (node.type === "hash") {
     const preview = [];
     const h = node.buffer.find(p => p.role === "HEADER" && p.status === "CLEAN");
@@ -632,7 +654,7 @@ function showInspector(node) {
   if (node.type === "filter" || node.type === "branch") {
     fields += `
       <div class="field"><label>Field</label>
-        <select data-k="field"><option>role</option><option>entropy</option><option>freq</option><option>status</option><option>value</option></select></div>
+        <select data-k="field"><option>entropy</option><option>freq</option><option>role</option><option>status</option><option>value</option></select></div>
       <div class="field"><label>Operator</label>
         <select data-k="op"><option value="lt">less than</option><option value="gt">greater than</option><option value="eq">equals</option><option value="neq">not equals</option></select></div>
       <div class="field"><label>Match value</label><input data-k="value" value="${cfg.value ?? ""}"></div>`;
@@ -664,7 +686,9 @@ function showInspector(node) {
 function wireColor(fromPort) {
   if (fromPort === "fail" || fromPort === "error") return "#f43f5e";
   if (fromPort === "pass") return "#4ade80";
-  if (fromPort === "false") return "#c084fc";
+  if (fromPort === "a" || fromPort === "true") return "#22d3ee";
+  if (fromPort === "b" || fromPort === "false") return "#c084fc";
+  if (fromPort === "def") return "#4ade80";
   return "#22d3ee";
 }
 
@@ -780,6 +804,10 @@ function parseHex(v, fallback) {
 
 function matches(pkt, cfg) {
   const field = cfg.field || "freq";
+  const raw = String(cfg.value ?? "").trim().toLowerCase();
+  if (field === "freq" && (raw === "313" || raw === "03:13" || raw === "3:13" || raw === "0x0313")) {
+    return pkt.freq === 313 || pkt.freq === 626;
+  }
   let left = pkt[field];
   let right = cfg.value;
   if (field === "freq" || field === "payload" || field === "id" || field === "entropy") right = Number(right);
@@ -788,6 +816,19 @@ function matches(pkt, cfg) {
   if (op === "gt") return Number(left) > Number(right);
   const eq = left == right;
   return op === "neq" ? !eq : eq;
+}
+
+function condMatch(pkt, cond) {
+  const c = String(cond || "").trim().toUpperCase();
+  if (!c) return false;
+  if (c === "HEADER" || c === "BODY" || c === "DECOY") return String(pkt.role).toUpperCase() === c;
+  if (c === "313" || c === "03:13" || c === "0X0313") return pkt.freq === 313 || pkt.freq === 626;
+  if (c === "626") return pkt.freq === 626;
+  if (c.includes("=")) {
+    const [k, v] = c.split("=").map(s => s.trim());
+    return String(pkt[k.toLowerCase()]).toUpperCase() === v;
+  }
+  return String(pkt.freq) === c || String(pkt.value).toUpperCase() === c;
 }
 
 function outs(nodeId, port) {
@@ -927,6 +968,9 @@ function step() {
         else node.buffer.push(...fail);
       }
       log("filter", `Node ${node.title} routed ${pass.length} valid resonant fragment(s) -> PASS, rejected ${fail.length} decoy(s) -> REJECT.`);
+      if (!pass.length) {
+        log("warn", "HARMONIC_REJECT: Filter rejected all incoming frames. Valid memory packets resonate at frequencies matching the breach timestamp (03:13) with low entropy (<0.80).");
+      }
       return;
     }
 
@@ -959,10 +1003,15 @@ function step() {
     }
 
     if (s.type === "branch") {
-      const t = pkts.filter(p => matches(p, s.cfg));
-      const f = pkts.filter(p => !matches(p, s.cfg));
-      outs(s.id, "true").forEach(w => deliver(t.map(p => ({ ...p })), w.to, w.toPort));
-      outs(s.id, "false").forEach(w => deliver(f.map(p => ({ ...p })), w.to, w.toPort));
+      const toA = pkts.filter(p => condMatch(p, s.cfg.condA));
+      const toB = pkts.filter(p => !condMatch(p, s.cfg.condA) && condMatch(p, s.cfg.condB));
+      const rest = pkts.filter(p => !condMatch(p, s.cfg.condA) && !condMatch(p, s.cfg.condB));
+      outs(s.id, "a").forEach(w => deliver(toA.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "b").forEach(w => deliver(toB.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "def").forEach(w => deliver(rest.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "true").forEach(w => deliver(toA.map(p => ({ ...p })), w.to, w.toPort));
+      outs(s.id, "false").forEach(w => deliver(toB.concat(rest).map(p => ({ ...p })), w.to, w.toPort));
+      log("sys", `${node.title} valueMatch · PORT_A ${toA.length} · PORT_B ${toB.length} · DEFAULT ${rest.length}`);
       return;
     }
 
