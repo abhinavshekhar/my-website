@@ -472,13 +472,15 @@ function resetRound() {
   wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
   wires.push({ from: "gw1", fromPort: "out", to: "br1", toPort: "in" });
   wires.push({ from: "br1", fromPort: "true", to: "dly1", toPort: "in" });
-  selected = "join1";
+  wires.push({ from: "br1", fromPort: "false", to: "join1", toPort: "in2" });
+  wires.push({ from: "dly1", fromPort: "out", to: "join1", toPort: "in" });
+  wires.push({ from: "join1", fromPort: "out", to: "sigil", toPort: "in" });
+  selected = "sigil";
   renderAll();
   logEl.innerHTML = "";
   log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
-  log("sys", "Flow is built through HEADER Delay 700ms and BODY branch.");
-  log("diag", "YOUR MOVE: wire Stream Join 1 — Delay out → Join IN, Branch false/BODY → Join IN2, Join OUT → Sigil Forge.");
-  log("diag", "Then Reload 200 Pkts and press Run ▶▶.");
+  log("sys", "Full weave locked: filter → hash → gateway → HEADER/BODY join → sigil.");
+  log("ok", "Stream Join wired. Reload 200 Pkts, then Run ▶▶.");
   showInspector(nodes.find(n => n.id === "join1"));
 }
 
