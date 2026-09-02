@@ -170,6 +170,7 @@
       <span class="pts" id="pts">0 PTS</span>
       <button class="btn" id="btn-reset">Reset Round 1</button>
       <button class="btn btn-icon" id="btn-help" title="Directive">⚙</button>
+      <button class="btn btn-cyan" id="btn-run">Run ▶▶</button>
       <button class="btn-play" id="btn-play" title="Step execution">▶</button>
       <a class="btn btn-icon" href="index.html" title="Exit">✕</a>
     </div>
@@ -195,7 +196,7 @@
   </div>
 </div>
 
-<div class="modal-back" id="brief-modal">
+<div class="modal-back hidden" id="brief-modal">
   <div class="modal">
     <header>
       <div>
@@ -471,18 +472,13 @@ function resetRound() {
   wires.push({ from: "gw1", fromPort: "error", to: "burn", toPort: "in" });
   wires.push({ from: "gw1", fromPort: "out", to: "br1", toPort: "in" });
   wires.push({ from: "br1", fromPort: "true", to: "dly1", toPort: "in" });
-  wires.push({ from: "br1", fromPort: "false", to: "join1", toPort: "in2" });
-  wires.push({ from: "dly1", fromPort: "out", to: "join1", toPort: "in" });
-  wires.push({ from: "join1", fromPort: "out", to: "sigil", toPort: "in" });
   selected = "join1";
   renderAll();
   logEl.innerHTML = "";
   log("in", "ARK_INGRESS_01: Active stream connected. Telemetry buffer initialized.");
-  log("sys", "Neural weave pipeline standing by for signal routing.");
-  log("warn", "Anomalous signal patterns detected across ingress frequencies.");
-  log("diag", "Awaiting weave logic and filter topology configuration.");
-  log("diag", "HARMONIC_COLLAPSE countermeasure armed: Integrity Filter at ingress (entropy < 80).");
-  log("diag", "PAYLOAD_INCOMPLETE countermeasure armed: HEADER delayed 700ms, BODY waitForBoth via Stream Join.");
+  log("sys", "Flow is built through HEADER Delay 700ms and BODY branch.");
+  log("diag", "YOUR MOVE: wire Stream Join 1 — Delay out → Join IN, Branch false/BODY → Join IN2, Join OUT → Sigil Forge.");
+  log("diag", "Then Reload 200 Pkts and press Run ▶▶.");
   showInspector(nodes.find(n => n.id === "join1"));
 }
 
@@ -963,6 +959,15 @@ function evaluate(sigil) {
 }
 
 document.getElementById("btn-play").addEventListener("click", step);
+document.getElementById("btn-run").addEventListener("click", () => {
+  let n = 0;
+  while (n++ < 24) {
+    const before = nodes.map(x => x.buffer.length).join(",");
+    step();
+    if (won) break;
+    if (nodes.map(x => x.buffer.length).join(",") === before) break;
+  }
+});
 document.getElementById("btn-reload").addEventListener("click", () => {
   nodes.forEach(n => { n.buffer = n.type === "ingress" ? makePackets() : []; });
   won = false;
