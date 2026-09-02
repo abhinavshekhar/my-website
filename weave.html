@@ -242,7 +242,7 @@
       <div class="step"><b>05 — Reload Packets &amp; Reset</b><p>Reload 200 Pkts injects telemetry into ARK_INGRESS_01. Reset Round 1 restores the starter topology.</p></div>
     </div>
     <footer>
-      <span class="hint">Hint: lunar packets broadcast on freq 137. Glyph lock expects checksum 0x007F after XOR salt 0x5A. Dump rejects in the incinerator.</span>
+      <span class="hint">Hint: gw1 is read-only. Wire OUT → Hash Mutator (xorSalt 0x5A) → Sigil Forge. Wire ERROR → Incinerator.</span>
       <button class="btn btn-cyan" id="got-it">GOT IT // INITIALIZE PIPELINE</button>
     </footer>
   </div>
